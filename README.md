@@ -18,8 +18,8 @@ uv sync
 ```
 
 ## Usage
-You can run the tool with `uv`. Currently, this prints all public, non-forked repositories for `gt-sse-center`. In the future, options for specifying a specific organization, as well as running audits on each repository will be implemented.
+You can run the tool with `uv`. Currently, this prints all public, non-forked repositories for the specified github organization. In the future, the ability to run audits on each repository will be implemented.
 
 ```bash
-uv run orgwarden
+uv run orgwarden <github-org-name>
 ```

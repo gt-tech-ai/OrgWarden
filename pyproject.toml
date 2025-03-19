@@ -9,10 +9,11 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "requests>=2.32.3",
+    "typer>=0.15.2",
 ]
 
 [project.scripts]
-orgwarden = "orgwarden.__main__:main"
+orgwarden = "orgwarden.__main__:app"
 
 [build-system]
 requires = ["hatchling"]
