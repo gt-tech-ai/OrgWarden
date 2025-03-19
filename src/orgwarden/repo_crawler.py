@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import sys
 import requests
 
 
@@ -27,8 +26,11 @@ def fetch_org_repos(org_name: str) -> list[Repository]:
                 "page": page_num
             }
         )
-        if not response.ok:
-            sys.exit(f"Error fetching repos for organization: {org_name} -> {response.json()}")
+        if response.status_code != 200:
+            raise requests.HTTPError(
+                f"Error fetching repos for organization: {org_name}",
+                response=response
+            )
         
         json_data: list[dict] = response.json()
         page_num += 1  # Go to the next page
