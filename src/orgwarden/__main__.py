@@ -8,3 +8,6 @@ def main() -> None:
     print(f"~~~~~ Public repositories found for {org_name} ~~~~~")
     for repo in repos:
         print(f"{repo.org}/{repo.name} - {repo.url}")
+
+if __name__ == "__main__":
+    main()
