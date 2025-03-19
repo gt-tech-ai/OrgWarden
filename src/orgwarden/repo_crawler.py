@@ -30,12 +30,12 @@ def fetch_org_repos(org_name: str) -> list[Repository]:
         if not response.ok:
             sys.exit(f"Error fetching repos for organization: {org_name} -> {response.json()}")
         
-        data: list = response.json()
+        json_data: list[dict] = response.json()
         page_num += 1  # Go to the next page
-        if not data:
+        if not json_data:
             break  # No more repos
 
-        for repo in data:
+        for repo in json_data:
             if repo["name"] == ".github":
                 continue # ignore config repo
             if repo["fork"]:
