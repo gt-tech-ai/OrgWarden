@@ -13,7 +13,7 @@ def fetch_org_repos(org_name: str) -> list[Repository]:
     Returns a `Repository` list containing the specified organization's public, non-forked repositories.
     """
 
-    repositories: list[Repository] = []
+    org_repo_entries: list[dict] = [] # unfiltered api response
     page_num = 1
     while True:
         response = requests.get(
@@ -33,20 +33,23 @@ def fetch_org_repos(org_name: str) -> list[Repository]:
             )
         
         json_data: list[dict] = response.json()
-        page_num += 1  # Go to the next page
         if not json_data:
             break  # No more repos
+        org_repo_entries.extend(json_data)
+        page_num += 1  # Go to the next page
 
-        for repo in json_data:
-            if repo["name"] == ".github":
-                continue # ignore config repo
-            if repo["fork"]:
-                continue # ignore forks
+    # Build filtered list of Repositories
+    repositories: list[Repository] = []
+    for repo_entry in org_repo_entries:
+        if repo_entry["name"] == ".github":
+            continue # ignore config repo
+        if repo_entry["fork"]:
+            continue # ignore forks
 
-            repositories.append(Repository(
-                name=repo["name"],
-                url=repo["html_url"],
-                org=org_name
-            ))
+        repositories.append(Repository(
+            name=repo_entry["name"],
+            url=repo_entry["html_url"],
+            org=org_name
+        ))
 
     return repositories
