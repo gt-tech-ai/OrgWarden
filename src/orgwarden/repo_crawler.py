@@ -40,7 +40,7 @@ def fetch_org_repos(org_name: str) -> list[Repository]:
         json_data: list[dict] = response.json()
         if not json_data:
             break  # No more repos
-        org_repo_entries.extend(json_data)
+        org_repo_entries += json_data
         page_num += 1  # Go to the next page
 
     # Build filtered list of Repositories
