@@ -4,13 +4,16 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "austin-weeks", email = "austinweeksmusic@gmail.com" }
+    { name = "Tech AI", email = "austinweeksmusic@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "requests>=2.32.3",
+    "typer>=0.15.2",
+]
 
 [project.scripts]
-orgwarden = "orgwarden:main"
+orgwarden = "orgwarden.__main__:app"
 
 [build-system]
 requires = ["hatchling"]
