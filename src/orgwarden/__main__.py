@@ -12,4 +12,5 @@ def main(org_name: str) -> None:
         print(f"{repo.org}/{repo.name} - {repo.url}")
 
 if __name__ == "__main__":
-    app()
+    app() # pragma: no cover
+    

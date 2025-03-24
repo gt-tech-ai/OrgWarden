@@ -26,12 +26,7 @@ def fetch_org_repos(org_name: str) -> list[Repository]:
                 "page": page_num
             }
         )
-        if not response:
-            raise requests.RequestException(
-                f"Failed to fetch repos for organization: {org_name}",
-                response=response
-            )
-        if response.status_code != 200:
+        if not response or response.status_code != 200:
             raise requests.HTTPError(
                 f"Error fetching repos for organization: {org_name}",
                 response=response
