@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  Run-Tests:
+  Run-Checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
