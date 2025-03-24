@@ -23,3 +23,9 @@ You can run the tool with `uv`. Currently, this prints all public, non-forked re
 ```bash
 uv run orgwarden <github-org-name>
 ```
+
+## Development
+To manually run tests on this project, run the following command:
+```bash
+uv run pytest
+```

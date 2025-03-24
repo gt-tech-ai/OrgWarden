@@ -18,3 +18,12 @@ orgwarden = "orgwarden.__main__:app"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-cov>=6.0.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "--verbose --capture=no --cov=orgwarden --cov-fail-under=90.0 --cov-report term-missing"
