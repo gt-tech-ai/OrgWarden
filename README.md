@@ -1,7 +1,8 @@
+![CI](https://github.com/gt-tech-ai/OrgWarden/actions/workflows/CI.yml/badge.svg)
+
 # 👮‍♀️ OrgWarden (Work In Progress)
 
 *OrgWarden* is a tool for auditing an oganization's repositories.
-
 
 ## Installation
 

@@ -4,11 +4,12 @@ from .test_repo_crawler import TECH_AI_ORG_NAME, TECH_AI_KNOWN_REPOS
 
 runner = CliRunner()
 
-class TestApp():
+
+class TestApp:
     def test_invalid_org(self):
         res = runner.invoke(app, [""])
         assert res.exit_code != 0
-    
+
     def test_tech_ai(self):
         res = runner.invoke(app, [TECH_AI_ORG_NAME])
         assert res.exit_code == 0
