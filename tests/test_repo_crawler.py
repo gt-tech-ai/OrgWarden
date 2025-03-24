@@ -9,7 +9,7 @@ SSEC_KNOWN_REPOS = [
     "PythonProjectBootstrapper"
 ]
 TECH_AI_ORG_NAME = "gt-tech-ai"
-TECH_AI_KNOWN_REPOS = [] # currently no public repos
+TECH_AI_KNOWN_REPOS = ["OrgWarden"]
 
 class TestFetchOrgRepos():
     def test_no_org_name(self):
