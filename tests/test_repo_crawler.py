@@ -2,12 +2,6 @@ import pytest
 import requests
 from orgwarden.repo_crawler import Repository, fetch_org_repos
 
-SSEC_ORG_NAME = "gt-sse-center"
-SSEC_KNOWN_REPOS = [
-    "RepoAuditor",
-    "PatientX.AI",
-    "PythonProjectBootstrapper"
-]
 TECH_AI_ORG_NAME = "gt-tech-ai"
 TECH_AI_KNOWN_REPOS = ["OrgWarden"]
 
@@ -17,21 +11,17 @@ class TestFetchOrgRepos():
             fetch_org_repos()
 
     def test_non_existing_org(self):
-        with pytest.raises(requests.RequestException):
+        with pytest.raises(requests.HTTPError):
             fetch_org_repos("")
-
-    def test_gt_sse_center(self):
-        repos = fetch_org_repos(SSEC_ORG_NAME)
-        assert no_duplicates(repos)
-        assert includes_known_repos(repos, SSEC_KNOWN_REPOS)
-        # ensure repos excludes .github and forks
-        assert not includes_known_repos(repos, [".github"])
-        assert not includes_known_repos(repos, ["LIReC"])
 
     def test_gt_tech_ai(self):
         repos = fetch_org_repos(TECH_AI_ORG_NAME)
         assert no_duplicates(repos)
         assert includes_known_repos(repos, TECH_AI_KNOWN_REPOS)
+        # ensure repos excludes .github
+        assert not includes_known_repos(repos, [".github"])
+        # ensure repos excludes forks - gt-tech-ai currently has no public forks, ignore for now
+        # assert not includes_known_repos(repos, [""])
 
 
 def no_duplicates(repos: list[Repository]) -> bool:

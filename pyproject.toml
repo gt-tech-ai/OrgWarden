@@ -26,4 +26,4 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--verbose --capture=no --cov=orgwarden --cov-fail-under=90.0 --cov-report term-missing"
+addopts = "--verbose --capture=no --cov=orgwarden --cov-fail-under=95.0 --cov-report term-missing"
