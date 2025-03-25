@@ -3,7 +3,6 @@ import requests
 from orgwarden.repository import Repository
 
 
-
 def fetch_org_repos(org_name: str) -> list[Repository]:
     """
     Returns a `Repository` list containing the specified organization's public, non-forked repositories.

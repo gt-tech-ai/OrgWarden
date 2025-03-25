@@ -1,7 +1,6 @@
 import subprocess
-
-
 from .repo_crawler import Repository
+
 
 def audit_repository(repo: Repository) -> int:
     """
@@ -11,6 +10,6 @@ def audit_repository(repo: Repository) -> int:
         f"uv run repo_auditor --include GitHub --GitHub-url {repo.url}",
         shell=True,
         capture_output=False,
-        text=True
+        text=True,
     )
     return audit_res.returncode
