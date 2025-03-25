@@ -1,6 +1,11 @@
 from typer.testing import CliRunner
 from orgwarden.__main__ import app
-from tests.constants import ORGWARDEN_REPO_NAME, TECH_AI_KNOWN_REPOS, TECH_AI_ORG_NAME, TESTING_FLAG
+from tests.constants import (
+    ORGWARDEN_REPO_NAME,
+    TECH_AI_KNOWN_REPOS,
+    TECH_AI_ORG_NAME,
+    TESTING_FLAG,
+)
 
 runner = CliRunner()
 

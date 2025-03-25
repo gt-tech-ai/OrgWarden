@@ -1,5 +1,5 @@
 import subprocess
-from .repo_crawler import Repository
+from orgwarden.repo_crawler import Repository
 
 
 def audit_repository(repo: Repository, capture: bool = False) -> tuple[int, str | None]:

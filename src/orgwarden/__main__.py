@@ -49,6 +49,7 @@ def audit_org(
     Runs the RepoAuditor tool against all public, non-forked repositories for the specified <org_name>
     """
     repos = fetch_org_repos(org_name)
+    # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
     final_exit_code = 0
     for repo in repos:
         exit_code, stdout = audit_repository(repo, capture=test_run)
