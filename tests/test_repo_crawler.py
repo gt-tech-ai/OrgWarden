@@ -2,9 +2,7 @@ import pytest
 import requests
 from orgwarden.repo_crawler import fetch_org_repos
 from orgwarden.repository import Repository
-
-TECH_AI_ORG_NAME = "gt-tech-ai"
-TECH_AI_KNOWN_REPOS = ["OrgWarden"]
+from tests.constants import TECH_AI_KNOWN_REPOS, TECH_AI_ORG_NAME
 
 
 class TestFetchOrgRepos:
