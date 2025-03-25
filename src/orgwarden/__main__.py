@@ -1,5 +1,6 @@
 import sys
 from typing import Annotated
+from urllib.parse import urlparse
 import typer
 from orgwarden.audit import audit_repository
 from orgwarden.repository import Repository
@@ -9,9 +10,9 @@ app = typer.Typer()
 
 
 @app.command()
-def ls_repos(org_name: str) -> None:
+def list_repos(org_name: str) -> None:
     """
-    Lists all public, non-forked repositories for the specified <org_name>
+    Lists all public, non-forked repositories for the specified organization.
     """
     repos = fetch_org_repos(org_name)
 
@@ -21,42 +22,61 @@ def ls_repos(org_name: str) -> None:
 
 
 @app.command()
-def audit_repo(
-    repo_owner: str,
-    repo_name: str,
+def audit(
+    url: Annotated[
+        str, typer.Argument(help="The url for a GitHub repository or organization.")
+    ],
     test_run: Annotated[bool, typer.Option(help="Used for mock testing.")] = False,
 ) -> None:
     """
-    Runs the RepoAuditor tool against the specified <repo_owner>'s <repo_name>
+    If the provided <url> is a repository, runs RepoAuditor against the specified repository.
+    If the provided <url> is an organization, runs RepoAuditor against all of the organization's public, non-forked repositories.
     """
-    repo = Repository(
-        name=repo_name,
-        url=f"https://github.com/{repo_owner}/{repo_name}",
-        org=repo_owner,
-    )
-    exit_code, stdout = audit_repository(repo, capture=test_run)
-    if test_run:
-        print(stdout)
-    sys.exit(exit_code)
 
+    def exit_for_invalid_url():
+        typer.echo(
+            typer.style(
+                f"Error: {url} is not a valid GitHub repository or organization.",
+                fg=typer.colors.RED,
+            )
+        )
+        typer.echo(
+            typer.style(
+                "Example: https://github.com/gt-tech-ai/OrgWarden",
+                fg=typer.colors.GREEN,
+            )
+        )
+        sys.exit(1)
 
-@app.command()
-def audit_org(
-    org_name: str,
-    test_run: Annotated[bool, typer.Option(help="Used for mock testing.")] = False,
-) -> None:
-    """
-    Runs the RepoAuditor tool against all public, non-forked repositories for the specified <org_name>
-    """
-    repos = fetch_org_repos(org_name)
-    # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
-    final_exit_code = 0
-    for repo in repos:
+    # Parse url
+    parsed_url = urlparse(url)
+    if parsed_url.netloc != "github.com":
+        exit_for_invalid_url()
+    split_path = parsed_url.path.strip("/").split("/")
+
+    if len(split_path) == 2:  # repository
+        repo_owner, repo_name = split_path[0], split_path[1]
+        repo = Repository(
+            name=repo_name,
+            url=f"https://github.com/{repo_owner}/{repo_name}",
+            org=repo_owner,
+        )
         exit_code, stdout = audit_repository(repo, capture=test_run)
-        final_exit_code = max(final_exit_code, exit_code)
         if test_run:
             print(stdout)
-    sys.exit(final_exit_code)
+        sys.exit(exit_code)
+    elif len(split_path) == 1:  # organization
+        org_name = split_path[0]
+        repos = fetch_org_repos(org_name)
+        final_exit_code = 0  # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
+        for repo in repos:
+            exit_code, stdout = audit_repository(repo, capture=test_run)
+            final_exit_code = max(final_exit_code, exit_code)
+            if test_run:
+                print(stdout)
+        sys.exit(final_exit_code)
+    else:  # invalid url
+        exit_for_invalid_url()
 
 
 if __name__ == "__main__":
