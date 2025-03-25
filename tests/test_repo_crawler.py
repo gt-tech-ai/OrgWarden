@@ -1,6 +1,7 @@
 import pytest
 import requests
-from orgwarden.repo_crawler import Repository, fetch_org_repos
+from orgwarden.repo_crawler import fetch_org_repos
+from orgwarden.repository import Repository
 
 TECH_AI_ORG_NAME = "gt-tech-ai"
 TECH_AI_KNOWN_REPOS = ["OrgWarden"]

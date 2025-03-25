@@ -107,12 +107,35 @@ wheels = [
 ]
 
 [[package]]
+name = "dbrownell-common"
+version = "0.14.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "inflect" },
+    { name = "rich" },
+    { name = "typer" },
+    { name = "typer-config" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/83/47/040ea5e26408f764ef9a111f5cc91f9dd0985dbde302f72018e66c568648/dbrownell_Common-0.14.4-py3-none-any.whl", hash = "sha256:a082e11cd1e0f125a7b2d275e8ee2410c6abeb92277e2b993b7e02061dfe0a35", size = 41376 },
+]
+
+[[package]]
 name = "idna"
 version = "3.10"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f1/70/7703c29685631f5a7590aa73f1f1d3fa9a380e654b86af429e0934a32f7d/idna-3.10.tar.gz", hash = "sha256:12f65c9b470abda6dc35cf8e63cc574b1c52b11df2c86030af0ac09b01b13ea9", size = 190490 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/76/c6/c88e154df9c4e1a2a66ccf0005a88dfb2650c1dffb6f5ce603dfbd452ce3/idna-3.10-py3-none-any.whl", hash = "sha256:946d195a0d259cbba61165e88e65941f16e9b36ea6ddb97f00452bae8b1287d3", size = 70442 },
+]
+
+[[package]]
+name = "inflect"
+version = "4.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c6/9f/163fbcda011f284d13261f11aa1e14daf28f68729e475c79f7d223c01a36/inflect-4.1.1.tar.gz", hash = "sha256:0527947406025991506b252620da69a5efdc72bf61aa6b4b4976e3bd71c19660", size = 71278 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4e/9d/81e86c99531ec3dda860f04656e48304cb9dc7d2b9e0ac3e7a806ae5747f/inflect-4.1.1-py3-none-any.whl", hash = "sha256:b0d13bbb6e12313b8fc4a171c86c4f4544cf09a8498e118d25473558200bd171", size = 31507 },
 ]
 
 [[package]]
@@ -150,6 +173,7 @@ name = "orgwarden"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "repoauditor" },
     { name = "requests" },
     { name = "typer" },
 ]
@@ -163,6 +187,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "repoauditor", specifier = ">=0.1.22" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "typer", specifier = ">=0.15.2" },
 ]
@@ -227,6 +252,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/be/45/9b538de8cef30e17c7b45ef42f538a94889ed6a16f2387a6c89e73220651/pytest-cov-6.0.0.tar.gz", hash = "sha256:fde0b595ca248bb8e2d76f020b465f3b107c9632e6a1d1705f17834c89dcadc0", size = 66945 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/36/3b/48e79f2cd6a61dbbd4807b4ed46cb564b4fd50a76166b1c4ea5c1d9e2371/pytest_cov-6.0.0-py3-none-any.whl", hash = "sha256:eee6f1b9e61008bd34975a4d5bab25801eb31898b032dd55addc93e96fcaaa35", size = 22949 },
+]
+
+[[package]]
+name = "repoauditor"
+version = "0.1.22"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dbrownell-common" },
+    { name = "pluggy" },
+    { name = "requests" },
+    { name = "typer" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/6d/928e676f4c38a24485f1d07859af2ee76f8c51ae38fcad392fe83083b331/RepoAuditor-0.1.22-py3-none-any.whl", hash = "sha256:f5c24e8b3bc2075535c759ad5648147cbd2e87a63ac089487b235b3a3b2387eb", size = 69136 },
 ]
 
 [[package]]
@@ -304,6 +343,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8b/6f/3991f0f1c7fcb2df31aef28e0594d8d54b05393a0e4e34c65e475c2a5d41/typer-0.15.2.tar.gz", hash = "sha256:ab2fab47533a813c49fe1f16b1a370fd5819099c00b119e0633df65f22144ba5", size = 100711 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/fc/5b29fea8cee020515ca82cc68e3b8e1e34bb19a3535ad854cac9257b414c/typer-0.15.2-py3-none-any.whl", hash = "sha256:46a499c6107d645a9c13f7ee46c5d5096cae6f5fc57dd11eccbbb9ae3e44ddfc", size = 45061 },
+]
+
+[[package]]
+name = "typer-config"
+version = "1.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2e/af/78f802bc49eaa5855082cca10e9c9d7d03469c957c149aa159561dc3d744/typer_config-1.4.2.tar.gz", hash = "sha256:69dffc0e06095b57754bfe9fb3e4caf28ab9c2c430dade6433b0ca128510f600", size = 10919 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/df/bd/2e9d407d7ed3f33a40d8211a481b76a0507ba4f117da9dec116c0de9871e/typer_config-1.4.2-py3-none-any.whl", hash = "sha256:b3e1f59bacc8276e5b830f35c9ca403cd85f14173169c23c3756fa816357a34f", size = 11698 },
 ]
 
 [[package]]
