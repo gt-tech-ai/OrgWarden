@@ -26,11 +26,11 @@ jobs:
       - name: Install Dependencies
         run: uv sync --frozen
 
-      - name: Run Tests
-        run: uv run pytest
-
       - name: Validate Formatting
         run: uv run ruff format --check --verbose
 
       - name: Validate Linting
         run: uv run ruff check --verbose
+        
+      - name: Run Tests
+        run: uv run pytest

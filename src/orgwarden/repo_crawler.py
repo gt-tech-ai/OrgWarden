@@ -1,12 +1,5 @@
-from dataclasses import dataclass
 import requests
-
-
-@dataclass
-class Repository:
-    name: str
-    url: str
-    org: str
+from orgwarden.repository import Repository
 
 
 def fetch_org_repos(org_name: str) -> list[Repository]:
