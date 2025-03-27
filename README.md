@@ -24,7 +24,7 @@ You can run the tool with `uv`. The available commands are as follows:
 ### List Repositories
 Lists all public, non-forked repositories for the specified GitHub organization.
 ```bash
-uv run orgwarden ls-repos <github_org_name>
+uv run orgwarden list-repos <github_org_name>
 ```
 
 ### Audit
