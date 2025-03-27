@@ -27,16 +27,10 @@ Lists all public, non-forked repositories for the specified GitHub organization.
 uv run orgwarden ls-repos <github_org_name>
 ```
 
-### Audit Repository
-Runs RepoAuditor on the specified owner's repository.
+### Audit
+Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the provided url points to a GitHub repository, RepoAuditor will run against said repository. If the provided url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization.
 ```bash
-uv run orgwarden audit-repo <repository_owner> <repository_name>
-```
-
-### Audit Organization
-Runs RepoAuditor across all public, non-forked repositories for the specified GitHub organization.
-```bash
-uv run orgwarden audit-org <github_org_name>
+uv run orgwarden audit <github_url>
 ```
 
 
