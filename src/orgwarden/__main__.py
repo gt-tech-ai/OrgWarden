@@ -26,7 +26,6 @@ def audit(
     url: Annotated[
         str, typer.Argument(help="The url for a GitHub repository or organization.")
     ],
-    test_run: Annotated[bool, typer.Option(help="Used for mock testing.")] = False,
 ) -> None:
     """
     If the provided <url> is a repository, runs RepoAuditor against the specified repository.
@@ -61,20 +60,18 @@ def audit(
             url=f"https://github.com/{repo_owner}/{repo_name}",
             org=repo_owner,
         )
-        exit_code, stdout = audit_repository(repo, capture=test_run)
-        if test_run:
-            print(stdout)
+        exit_code, _ = audit_repository(repo)
         sys.exit(exit_code)
+
     elif len(split_path) == 1:  # organization
         org_name = split_path[0]
         repos = fetch_org_repos(org_name)
         final_exit_code = 0  # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
         for repo in repos:
-            exit_code, stdout = audit_repository(repo, capture=test_run)
+            exit_code, _ = audit_repository(repo)
             final_exit_code = max(final_exit_code, exit_code)
-            if test_run:
-                print(stdout)
         sys.exit(final_exit_code)
+
     else:  # invalid url
         exit_for_invalid_url()
 

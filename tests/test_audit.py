@@ -29,3 +29,4 @@ def test_orgwarden_repo():
     # cannot check exit_code, as this is dependent on whether OrgWarden passes audit
     assert "Results: DONE!" in stdout
     assert repo.url in stdout
+    assert "not a valid GitHub repository" not in stdout
