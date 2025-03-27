@@ -75,30 +75,32 @@ class TestAuditCommand:
             Repository(name="repo2", url="url2", org=TECH_AI_ORG_NAME),
             Repository(name="repo3", url="url3", org=TECH_AI_ORG_NAME),
         ]
-        mock_fetch_repos_called = False
+        mock_fetch_org_repos_called = False
 
         def mock_fetch_org_repos(org_name: str) -> list[Repository]:
-            nonlocal mock_fetch_repos_called
-            mock_fetch_repos_called = True
+            nonlocal mock_fetch_org_repos_called
+            mock_fetch_org_repos_called = True
             assert org_name == TECH_AI_ORG_NAME
             return mock_repos
 
         monkeypatch.setattr("orgwarden.__main__.fetch_org_repos", mock_fetch_org_repos)
 
-        mock_audit_calls = 0
+        mock_audit_repository_calls = 0
 
-        def mock_audit(
+        def mock_audit_repository(
             repo: Repository, capture: bool = False
         ) -> tuple[int, str | None]:
-            nonlocal mock_audit_calls
-            mock_audit_calls += 1
+            nonlocal mock_audit_repository_calls
+            mock_audit_repository_calls += 1
             assert not capture
             assert repo.org == TECH_AI_ORG_NAME
             return 0, None
 
-        monkeypatch.setattr("orgwarden.__main__.audit_repository", mock_audit)
+        monkeypatch.setattr(
+            "orgwarden.__main__.audit_repository", mock_audit_repository
+        )
 
         res = runner.invoke(app, [self.COMMAND, TECH_AI_URL])
-        assert mock_fetch_repos_called
-        assert mock_audit_calls == len(mock_repos)
+        assert mock_fetch_org_repos_called
+        assert mock_audit_repository_calls == len(mock_repos)
         assert res.exit_code == 0
