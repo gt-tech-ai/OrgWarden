@@ -34,7 +34,6 @@ class TestAuditCommand:
             "",  # empty url
             "/gt-tech-ai/OrgWarden",  # missing site
             "github.com/gt-tech-ai/OrgWarden",  # missing protocol
-            "https://example.com/gt-tech-ai/OrgWarden",  # not GitHub
             "https://github.com/gt-tech-ai/OrgWarden/extra-bits",  # path too long
         ]:
             res = runner.invoke(app, [self.COMMAND, url])

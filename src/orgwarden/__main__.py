@@ -1,10 +1,10 @@
 import sys
 from typing import Annotated
-from urllib.parse import urlparse
 import typer
 from orgwarden.audit import audit_repository
 from orgwarden.repository import Repository
 from orgwarden.repo_crawler import fetch_org_repos
+from orgwarden.url_tools import validate_url
 
 app = typer.Typer()
 
@@ -32,7 +32,9 @@ def audit(
     If the provided <url> is an organization, runs RepoAuditor against all of the organization's public, non-forked repositories.
     """
 
-    def exit_for_invalid_url():
+    try:
+        repo_owner, repo_name = validate_url(url)
+    except ValueError:
         typer.echo(
             typer.style(
                 f"Error: {url} is not a valid GitHub repository or organization.",
@@ -47,33 +49,22 @@ def audit(
         )
         sys.exit(1)
 
-    # Parse url
-    parsed_url = urlparse(url)
-    if parsed_url.netloc != "github.com":
-        exit_for_invalid_url()
-    split_path = parsed_url.path.strip("/").split("/")
-
-    if len(split_path) == 2:  # repository
-        repo_owner, repo_name = split_path[0], split_path[1]
+    if repo_name:  # repository
         repo = Repository(
             name=repo_name,
-            url=f"https://github.com/{repo_owner}/{repo_name}",
+            url=url,
             org=repo_owner,
         )
         exit_code, _ = audit_repository(repo)
         sys.exit(exit_code)
 
-    elif len(split_path) == 1:  # organization
-        org_name = split_path[0]
-        repos = fetch_org_repos(org_name)
+    else:  # organization
+        repos = fetch_org_repos(repo_owner)
         final_exit_code = 0  # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
         for repo in repos:
             exit_code, _ = audit_repository(repo)
             final_exit_code = max(final_exit_code, exit_code)
         sys.exit(final_exit_code)
-
-    else:  # invalid url
-        exit_for_invalid_url()
 
 
 if __name__ == "__main__":
