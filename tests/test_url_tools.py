@@ -20,20 +20,32 @@ def test_invalid_urls():
 
 
 def test_org_urls():
-    for url, org in [
-        ("https://github.com/gt-tech-ai", "gt-tech-ai"),
-        ("https://github.gatech.edu/gt-tech-ai", "gt-tech-ai"),
+    for url, hostname, org in [
+        ("https://github.com/gt-tech-ai", "github.com", "gt-tech-ai"),
+        ("https://github.gatech.edu/gt-tech-ai", "github.gatech.edu", "gt-tech-ai"),
     ]:
-        repo_owner, repo_name = validate_url(url)
-        assert repo_name is None
-        assert repo_owner == org
+        parsed_url = validate_url(url)
+        assert parsed_url.hostname == hostname
+        assert parsed_url.org_name == org
+        assert parsed_url.repo_name is None
 
 
 def test_repo_urls():
-    for url, org, repo in [
-        ("https://github.com/gt-tech-ai/OrgWarden", "gt-tech-ai", "OrgWarden"),
-        ("https://github.gatech.edu/gt-tech-ai/OrgWarden", "gt-tech-ai", "OrgWarden"),
+    for url, hostname, org, repo in [
+        (
+            "https://github.com/gt-tech-ai/OrgWarden",
+            "github.com",
+            "gt-tech-ai",
+            "OrgWarden",
+        ),
+        (
+            "https://github.gatech.edu/gt-tech-ai/OrgWarden",
+            "github.gatech.edu",
+            "gt-tech-ai",
+            "OrgWarden",
+        ),
     ]:
-        repo_owner, repo_name = validate_url(url)
-        assert repo_owner == org
-        assert repo_name == repo
+        parsed_url = validate_url(url)
+        assert parsed_url.hostname == hostname
+        assert parsed_url.org_name == org
+        assert parsed_url.repo_name == repo

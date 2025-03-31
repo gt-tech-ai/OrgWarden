@@ -1,6 +1,7 @@
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 from orgwarden.__main__ import app
+from orgwarden.constants import GITHUB_HOSTNAME
 from orgwarden.repository import Repository
 from tests.constants import (
     ORGWARDEN_REPO_NAME,
@@ -16,14 +17,16 @@ runner = CliRunner()
 class TestListReposCommand:
     COMMAND = "list-repos"
 
-    def test_invalid_org(self):
-        res = runner.invoke(app, [self.COMMAND, ""])
-        assert res.exit_code != 0
+    def test_invalid_orgs(self):
+        for org in ["", "example.com", "https://github.com"]:
+            res = runner.invoke(app, [self.COMMAND, org])
+            assert res.exit_code != 0
 
-    def test_valid_org(self):
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_ORG_NAME])
-        assert res.exit_code == 0
-        assert all([repo_name in res.stdout for repo_name in TECH_AI_KNOWN_REPOS])
+    def test_valid_orgs(self):
+        for org in [TECH_AI_ORG_NAME, TECH_AI_URL]:
+            res = runner.invoke(app, [self.COMMAND, org])
+            assert res.exit_code == 0
+            assert all([repo_name in res.stdout for repo_name in TECH_AI_KNOWN_REPOS])
 
 
 class TestAuditCommand:
@@ -74,12 +77,14 @@ class TestAuditCommand:
             Repository(name="repo2", url="url2", org=TECH_AI_ORG_NAME),
             Repository(name="repo3", url="url3", org=TECH_AI_ORG_NAME),
         ]
+
         mock_fetch_org_repos_called = False
 
-        def mock_fetch_org_repos(org_name: str) -> list[Repository]:
+        def mock_fetch_org_repos(org_name: str, hostname: str) -> list[Repository]:
             nonlocal mock_fetch_org_repos_called
             mock_fetch_org_repos_called = True
             assert org_name == TECH_AI_ORG_NAME
+            assert hostname == GITHUB_HOSTNAME
             return mock_repos
 
         monkeypatch.setattr("orgwarden.__main__.fetch_org_repos", mock_fetch_org_repos)

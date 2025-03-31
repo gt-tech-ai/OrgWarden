@@ -22,15 +22,15 @@ uv sync
 You can run the tool with `uv`. The available commands are as follows:
 
 ### List Repositories
-Lists all public, non-forked repositories for the specified GitHub organization.
+Lists all public, non-forked repositories for the specified GitHub organization. If the provided argument is the name of an organization, OrgWarden will search for said organization on github.com. If the provided argument is a url, OrgWarden will search said organizaiton at that url.
 ```bash
-uv run orgwarden list-repos <github_org_name>
+uv run orgwarden list-repos <github_org_name_or_url>
 ```
 
 ### Audit
-Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the provided url points to a GitHub repository, RepoAuditor will run against said repository. If the provided url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization.
+Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the provided url points to a GitHub repository, RepoAuditor will run against said repository. If the provided url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization. 
 ```bash
-uv run orgwarden audit <github_url>
+uv run orgwarden audit <repo_or_org_url>
 ```
 
 

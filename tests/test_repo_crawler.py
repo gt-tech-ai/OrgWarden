@@ -1,68 +1,70 @@
 import pytest
-from orgwarden.repo_crawler import fetch_org_repos
+from pytest import MonkeyPatch
+from orgwarden.constants import GITHUB_HOSTNAME
+from orgwarden.repo_crawler import APIError, fetch_org_repos
 from orgwarden.repository import Repository
-from tests.constants import TECH_AI_KNOWN_REPOS, TECH_AI_ORG_NAME
+from tests.constants import SELF_HOSTED_HOSTNAME, TECH_AI_KNOWN_REPOS, TECH_AI_ORG_NAME
 
 
-class TestFetchOrgRepos:
-    def test_no_org_name(self):
-        with pytest.raises(TypeError):
-            fetch_org_repos()
-
-    def test_non_existing_org(self):
-        with pytest.raises(ConnectionError):
-            fetch_org_repos("")
-
-    def test_gt_tech_ai(self):
-        repos = fetch_org_repos(TECH_AI_ORG_NAME)
-        assert no_duplicates(repos)
-        assert includes_known_repos(repos, TECH_AI_KNOWN_REPOS)
-        # ensure repos excludes .github
-        assert not includes_known_repos(repos, [".github"])
-        # ensure repos excludes forks - gt-tech-ai currently has no public forks, ignore for now
-        # assert not includes_known_repos(repos, [""])
+def test_no_org_name():
+    with pytest.raises(TypeError):
+        fetch_org_repos()
 
 
-def no_duplicates(repos: list[Repository]) -> bool:
+def test_missing_org():
+    with pytest.raises(APIError):
+        fetch_org_repos("", GITHUB_HOSTNAME)
+
+
+def test_missing_hostname():
+    with pytest.raises(APIError):
+        fetch_org_repos(TECH_AI_ORG_NAME, "")
+
+
+def test_invalid_json_response(monkeypatch: MonkeyPatch):
+    mock_json_loads_called = False
+
+    def mock_json_loads(_: str):
+        nonlocal mock_json_loads_called
+        mock_json_loads_called = True
+        return {}
+
+    monkeypatch.setattr("json.loads", mock_json_loads)
+    with pytest.raises(APIError) as e:
+        fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME)
+        assert "JSON response does not match" in e.message
+        assert mock_json_loads_called
+
+
+def test_github_hosted_orgs():
+    repos = fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME)
+    validate_response(TECH_AI_KNOWN_REPOS, repos)
+
+
+@pytest.mark.xfail(
+    reason="Authentication for self-hosted GitHub instances not yet implemented"
+)
+def test_self_hosted_org():
+    repos = fetch_org_repos(TECH_AI_ORG_NAME, SELF_HOSTED_HOSTNAME)
+    validate_response([], repos)
+
+
+def validate_response(known: list[str], actual: list[Repository]):
+    # check for duplicates
     unique = []
-    for repo in repos:
-        if repo in unique:
-            return False
+    for repo in actual:
+        assert repo not in unique
         unique.append(repo)
-    return True
 
-
-def test_no_duplicates():
-    assert no_duplicates(
-        [
-            Repository("test_repo_1", "https://example.com/test1", "test_org_1"),
-            Repository("test_repo_2", "https://example.com/test2", "test_org_2"),
-        ]
-    )
-    assert not no_duplicates(
-        [
-            Repository("test_repo_1", "https://example.com/test1", "test_org_1"),
-            Repository("test_repo_1", "https://example.com/test1", "test_org_1"),
-        ]
-    )
-
-
-def includes_known_repos(repos: list[Repository], known_repos_names: list[str]) -> bool:
+    # ensure response includes known repositories
     actual_names = []
-    for repo in repos:
+    for repo in actual:
         actual_names.append(repo.name)
-    for known_name in known_repos_names:
-        if known_name not in actual_names:
-            return False
-    return True
+    for repo in known:
+        assert repo in actual_names
 
+    # ensure response excludes .github
+    assert ".github" not in actual_names
 
-def test_includes_known_repos():
-    assert includes_known_repos(
-        [Repository("test_repo_1", "https://example.com/test1", "test_org_1")],
-        ["test_repo_1"],
-    )
-    assert not includes_known_repos(
-        [Repository("test_repo_1", "https://example.com/test1", "test_org_1")],
-        ["test_repo_2"],
-    )
+    # ensure response excludes forks
+    # cannot check currently as gt-tech-ai currently has no public forks

@@ -2,6 +2,7 @@ import sys
 from typing import Annotated
 import typer
 from orgwarden.audit import audit_repository
+from orgwarden.constants import GITHUB_HOSTNAME
 from orgwarden.repository import Repository
 from orgwarden.repo_crawler import fetch_org_repos
 from orgwarden.url_tools import validate_url
@@ -10,17 +11,33 @@ app = typer.Typer()
 
 
 @app.command()
-def list_repos(org_name: str) -> None:
+def list_repos(
+    organization: Annotated[
+        str,
+        typer.Argument(
+            help="The name or url of a GitHub organization. Ex: 'gt-tech-ai' OR 'https://github.com/gt-tech-ai'"
+        ),
+    ],
+) -> None:
     """
     Lists all public, non-forked repositories for the specified organization.
     """
+
+    org_name, hostname = organization, GITHUB_HOSTNAME
     try:
-        repos = fetch_org_repos(org_name)
+        parsed_url = validate_url(organization)
+        org_name = parsed_url.org_name
+        hostname = parsed_url.hostname
+    except ValueError:
+        pass
+
+    try:
+        repos = fetch_org_repos(org_name, hostname)
     except Exception as e:
         print(e)
         sys.exit(1)
 
-    print(f"~~~~~ Public repositories found for {org_name} ~~~~~")
+    print(f"~~~~~ Public repositories found for {organization} ~~~~~")
     for repo in repos:
         print(f"{repo.org}/{repo.name} - {repo.url}")
 
@@ -37,7 +54,7 @@ def audit(
     """
 
     try:
-        repo_owner, repo_name = validate_url(url)
+        parsed_url = validate_url(url)
     except ValueError:
         typer.echo(
             typer.style(
@@ -53,17 +70,22 @@ def audit(
         )
         sys.exit(1)
 
-    if repo_name:  # repository
+    if parsed_url.repo_name:  # repository
         repo = Repository(
-            name=repo_name,
+            name=parsed_url.repo_name,
             url=url,
-            org=repo_owner,
+            org=parsed_url.org_name,
         )
         exit_code, _ = audit_repository(repo)
         sys.exit(exit_code)
 
     else:  # organization
-        repos = fetch_org_repos(repo_owner)
+        try:
+            repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname)
+        except Exception as e:
+            print(e)
+            sys.exit(1)
+
         final_exit_code = 0  # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
         for repo in repos:
             exit_code, _ = audit_repository(repo)
