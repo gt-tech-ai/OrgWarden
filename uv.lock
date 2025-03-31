@@ -174,7 +174,6 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "repoauditor" },
-    { name = "requests" },
     { name = "typer" },
 ]
 
@@ -188,7 +187,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "repoauditor", specifier = ">=0.1.22" },
-    { name = "requests", specifier = ">=2.32.3" },
     { name = "typer", specifier = ">=0.15.2" },
 ]
 

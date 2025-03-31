@@ -14,7 +14,11 @@ def list_repos(org_name: str) -> None:
     """
     Lists all public, non-forked repositories for the specified organization.
     """
-    repos = fetch_org_repos(org_name)
+    try:
+        repos = fetch_org_repos(org_name)
+    except Exception as e:
+        print(e)
+        sys.exit(1)
 
     print(f"~~~~~ Public repositories found for {org_name} ~~~~~")
     for repo in repos:

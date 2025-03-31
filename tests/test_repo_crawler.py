@@ -1,5 +1,4 @@
 import pytest
-import requests
 from orgwarden.repo_crawler import fetch_org_repos
 from orgwarden.repository import Repository
 from tests.constants import TECH_AI_KNOWN_REPOS, TECH_AI_ORG_NAME
@@ -11,7 +10,7 @@ class TestFetchOrgRepos:
             fetch_org_repos()
 
     def test_non_existing_org(self):
-        with pytest.raises(requests.HTTPError):
+        with pytest.raises(ConnectionError):
             fetch_org_repos("")
 
     def test_gt_tech_ai(self):

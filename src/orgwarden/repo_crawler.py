@@ -1,4 +1,5 @@
-import requests
+import json
+import subprocess
 from orgwarden.repository import Repository
 
 
@@ -8,26 +9,16 @@ def fetch_org_repos(org_name: str) -> list[Repository]:
     """
 
     org_repo_entries: list[dict] = []  # unfiltered api response
-    page_num = 1
-    while True:
-        response = requests.get(
-            url=f"https://api.github.com/orgs/{org_name}/repos",
-            headers={"Accept": "application/vnd.github+json"},
-            params={
-                "per_page": 100,  # max repos per page
-                "page": page_num,
-            },
-        )
-        if not response or response.status_code != 200:
-            raise requests.HTTPError(
-                f"Error fetching repos for organization: {org_name}", response=response
-            )
 
-        json_data: list[dict] = response.json()
-        if not json_data:
-            break  # No more repos
-        org_repo_entries += json_data
-        page_num += 1  # Go to the next page
+    res = subprocess.run(
+        f"gh api orgs/{org_name}/repos --paginate", shell=True, capture_output=True
+    )
+    if res.stderr:
+        raise ConnectionError(f"Error fetching repos for {org_name}: {res.stderr}")
+    try:
+        org_repo_entries = json.loads(res.stdout)
+    except json.JSONDecodeError as e:
+        raise json.JSONDecodeError(f"Could not decode API response: {e}")
 
     # Build filtered list of Repositories
     repositories: list[Repository] = []
