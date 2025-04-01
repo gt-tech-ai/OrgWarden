@@ -18,12 +18,14 @@ class TestListReposCommand:
     COMMAND = "list-repos"
 
     def test_invalid_orgs(self):
-        for org in ["", "example.com", "https://github.com"]:
+        INVALID_ORGS = ["", "example.com", "https://github.com"]
+        for org in INVALID_ORGS:
             res = runner.invoke(app, [self.COMMAND, org])
             assert res.exit_code != 0
 
     def test_valid_orgs(self):
-        for org in [TECH_AI_ORG_NAME, TECH_AI_URL]:
+        VALID_ORGS = [TECH_AI_ORG_NAME, TECH_AI_URL]
+        for org in VALID_ORGS:
             res = runner.invoke(app, [self.COMMAND, org])
             assert res.exit_code == 0
             assert all([repo_name in res.stdout for repo_name in TECH_AI_KNOWN_REPOS])
@@ -33,12 +35,13 @@ class TestAuditCommand:
     COMMAND = "audit"
 
     def test_invalid_urls(self):
-        for url in [
+        INVALID_URLS = [
             "",  # empty url
             "/gt-tech-ai/OrgWarden",  # missing site
             "github.com/gt-tech-ai/OrgWarden",  # missing protocol
             "https://github.com/gt-tech-ai/OrgWarden/extra-bits",  # path too long
-        ]:
+        ]
+        for url in INVALID_URLS:
             res = runner.invoke(app, [self.COMMAND, url])
             assert res.exit_code != 0
             assert "not a valid GitHub" in res.stdout
