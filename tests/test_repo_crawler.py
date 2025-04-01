@@ -1,9 +1,13 @@
 import pytest
 from pytest import MonkeyPatch
-from orgwarden.constants import GITHUB_HOSTNAME
 from orgwarden.repo_crawler import APIError, fetch_org_repos
 from orgwarden.repository import Repository
-from tests.constants import SELF_HOSTED_HOSTNAME, TECH_AI_KNOWN_REPOS, TECH_AI_ORG_NAME
+from tests.constants import (
+    SELF_HOSTED_HOSTNAME,
+    TECH_AI_KNOWN_REPOS,
+    TECH_AI_ORG_NAME,
+    GITHUB_HOSTNAME,
+)
 
 
 def test_no_org_name():

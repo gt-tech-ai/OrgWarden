@@ -1,7 +1,6 @@
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 from orgwarden.__main__ import app
-from orgwarden.constants import GITHUB_HOSTNAME
 from orgwarden.repository import Repository
 from tests.constants import (
     ORGWARDEN_REPO_NAME,
@@ -9,6 +8,7 @@ from tests.constants import (
     TECH_AI_KNOWN_REPOS,
     TECH_AI_ORG_NAME,
     TECH_AI_URL,
+    GITHUB_HOSTNAME,
 )
 
 runner = CliRunner()
@@ -18,14 +18,14 @@ class TestListReposCommand:
     COMMAND = "list-repos"
 
     def test_invalid_orgs(self):
-        INVALID_ORGS = ["", "example.com", "https://github.com"]
-        for org in INVALID_ORGS:
+        INVALID_URLS = ["", "example.com", "https://github.com"]
+        for org in INVALID_URLS:
             res = runner.invoke(app, [self.COMMAND, org])
             assert res.exit_code != 0
 
     def test_valid_orgs(self):
-        VALID_ORGS = [TECH_AI_ORG_NAME, TECH_AI_URL]
-        for org in VALID_ORGS:
+        VALID_URLS = [TECH_AI_URL]
+        for org in VALID_URLS:
             res = runner.invoke(app, [self.COMMAND, org])
             assert res.exit_code == 0
             assert all([repo_name in res.stdout for repo_name in TECH_AI_KNOWN_REPOS])
@@ -44,7 +44,7 @@ class TestAuditCommand:
         for url in INVALID_URLS:
             res = runner.invoke(app, [self.COMMAND, url])
             assert res.exit_code != 0
-            assert "not a valid GitHub" in res.stdout
+            assert f"{url} is invalid" in res.stdout
 
     def test_audit_with_repo_url(self, monkeypatch: MonkeyPatch):
         """

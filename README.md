@@ -22,9 +22,9 @@ uv sync
 You can run the tool with `uv`. The available commands are as follows:
 
 ### List Repositories
-Lists all public, non-forked repositories for the specified GitHub organization. If the provided argument is the name of an organization, OrgWarden will search for said organization on github.com. If the provided argument is a url, OrgWarden will search said organizaiton at that url.
+Lists all public, non-forked repositories for the specified GitHub organization.
 ```bash
-uv run orgwarden list-repos <github_org_name_or_url>
+uv run orgwarden list-repos <org_url>
 ```
 
 ### Audit
