@@ -9,8 +9,10 @@ class APIError(Exception):
 
 
 class AuthError(Exception):
-    def __init__(self, message: str):
-        super().__init__(message)
+    def __init__(self, hostname: str, message: str):
+        self.hostname = hostname
+        self.message = message
+        super().__init__(hostname, message)
 
 
 def fetch_org_repos(
@@ -29,7 +31,7 @@ def fetch_org_repos(
             capture_output=True,
         )
         if auth_res.stderr:
-            raise AuthError(f"Error authenticating with {hostname} : {auth_res.stderr}")
+            raise AuthError(hostname=hostname, message=auth_res.stderr)
 
     org_repo_entries: list[dict] = []  # unfiltered api response
 
