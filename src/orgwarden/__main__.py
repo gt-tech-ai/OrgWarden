@@ -14,9 +14,17 @@ def list_repos(
     url: Annotated[
         str,
         typer.Argument(
-            help="The url of a GitHub organization. Ex: 'https://github.com/gt-tech-ai'"
+            help="The url of a GitHub organization. Ex: 'https://github.com/gt-tech-ai'",
+            show_default=False,
         ),
     ],
+    token: Annotated[
+        str | None,
+        typer.Option(
+            help="GitHub Personal Access Token (PAT) - required for self-hosted GitHub instances",
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """
     Lists all public, non-forked repositories for the specified organization.
@@ -29,9 +37,9 @@ def list_repos(
         sys.exit(1)
 
     try:
-        repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname)
+        repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname, token)
     except Exception as e:
-        print(e)
+        print_general_error(e)
         sys.exit(1)
 
     print(f"~~~~~ Public repositories found for {url} ~~~~~")
@@ -42,7 +50,10 @@ def list_repos(
 @app.command()
 def audit(
     url: Annotated[
-        str, typer.Argument(help="The url for a GitHub repository or organization.")
+        str,
+        typer.Argument(
+            help="The url for a GitHub repository or organization.", show_default=False
+        ),
     ],
 ) -> None:
     """
@@ -69,7 +80,7 @@ def audit(
         try:
             repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname)
         except Exception as e:
-            print(e)
+            print_general_error(e)
             sys.exit(1)
 
         final_exit_code = 0  # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
@@ -85,14 +96,21 @@ def print_invalid_url_msg(url: str):
         typer.style(
             f"Error: {url} is invalid.",
             fg=typer.colors.RED,
-        )
+        ),
+        err=True,
     )
     typer.echo(
         typer.style(
             "Example: https://github.com/gt-tech-ai/OrgWarden",
             fg=typer.colors.GREEN,
-        )
+        ),
+        err=True,
     )
+
+
+# pragma: no cover
+def print_general_error(message: str):
+    typer.echo(typer.style(message, fg=typer.colors.RED), err=True)
 
 
 if __name__ == "__main__":
