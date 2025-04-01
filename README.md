@@ -22,15 +22,15 @@ uv sync
 You can run the tool with `uv`. The available commands are as follows:
 
 ### List Repositories
-Lists all public, non-forked repositories for the specified GitHub organization.
+Lists all public, non-forked repositories for the specified GitHub organization. The `enterprise-token` option is required when making requests to a self-hosted GitHub instance.
 ```bash
-uv run orgwarden list-repos <org_url>
+uv run orgwarden list-repos <org_url> --enterprise-token [gh_enterprise_token]
 ```
 
 ### Audit
-Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the provided url points to a GitHub repository, RepoAuditor will run against said repository. If the provided url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization. 
+Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the provided url points to a GitHub repository, RepoAuditor will run against said repository. If the provided url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization. The `token` option is a GitHub Personal Access Token (PAT) that is used by RepoAuditor for increased functionality.
 ```bash
-uv run orgwarden audit <repo_or_org_url>
+uv run orgwarden audit <repo_or_org_url> --token [gh_pat]
 ```
 
 

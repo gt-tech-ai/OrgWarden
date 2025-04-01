@@ -13,7 +13,6 @@ def audit_repository(
     if token is not None:
         command = f"{BASE_COMMAND} --GitHub-pat {token}"
 
-    print(command)
     audit_res = subprocess.run(
         command,
         shell=True,

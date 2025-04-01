@@ -17,10 +17,10 @@ def list_repos(
             show_default=False,
         ),
     ],
-    token: Annotated[
+    enterprise_token: Annotated[
         str | None,
         typer.Option(
-            help="GitHub Personal Access Token (PAT) - required for self-hosted GitHub instances",
+            help="GitHub Enterprise Token - required for accessing self-hosted GitHub instances",
             show_default=False,
         ),
     ] = None,
@@ -36,7 +36,9 @@ def list_repos(
         raise typer.Exit(1)
 
     try:
-        repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname, token)
+        repos = fetch_org_repos(
+            parsed_url.org_name, parsed_url.hostname, enterprise_token
+        )
     except AuthError as e:
         print_auth_error(e.hostname)
         raise typer.Exit(1)
@@ -143,12 +145,7 @@ def print_auth_error(hostname: str):
         ),
         err=True,
     )
-    typer.echo(
-        typer.style(
-            "Please",
-            fg=typer.colors.CYAN
-        )
-    )
+    typer.echo(typer.style("Please", fg=typer.colors.CYAN))
 
 
 if __name__ == "__main__":
