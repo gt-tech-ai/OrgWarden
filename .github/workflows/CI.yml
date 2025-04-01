@@ -26,6 +26,9 @@ jobs:
       - name: Install Dependencies
         run: uv sync --frozen
 
+      - name: TRY AUDIT WITH PAT
+        run: uv run orgwarden audit https://github.com/gt-tech-ai/OrgWarden --token ${{ secrets.GITHUB_TOKEN }}
+
       - name: Validate Formatting
         run: uv run ruff format --check --verbose
 
