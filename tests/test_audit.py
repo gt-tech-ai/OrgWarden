@@ -15,7 +15,7 @@ def test_invalid_repository():
         repo=Repository(
             name="invalid-repo", url="https://example.com", org="invalid-org"
         ),
-        token=None,
+        pat_token=None,
         capture=True,
     )
     assert exit_code != 0
@@ -30,7 +30,7 @@ ORGWARDEN_REPO = Repository(
 
 
 def test_orgwarden_repo_no_token():
-    _, stdout = audit_repository(repo=ORGWARDEN_REPO, token=None, capture=True)
+    _, stdout = audit_repository(repo=ORGWARDEN_REPO, pat_token=None, capture=True)
     # cannot check exit_code, as this is dependent on whether OrgWarden passes audit
     assert "Results: DONE!" in stdout
     assert ORGWARDEN_URL in stdout
@@ -41,7 +41,7 @@ def test_orgwarden_repo_no_token():
 @pytest.mark.xfail(reason="Need to setup a PAT for testing.")
 def test_orgwarden_repo_with_token():
     PAT = "todo"
-    _, stdout = audit_repository(repo=ORGWARDEN_REPO, token=PAT, capture=True)
+    _, stdout = audit_repository(repo=ORGWARDEN_REPO, pat_token=PAT, capture=True)
     assert "Results: DONE!" in stdout
     assert ORGWARDEN_URL in stdout
     assert "not a valid GitHub repository" not in stdout

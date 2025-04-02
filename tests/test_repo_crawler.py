@@ -17,12 +17,12 @@ def test_no_org_name():
 
 def test_missing_org():
     with pytest.raises(APIError):
-        fetch_org_repos(org_name="", hostname=GITHUB_HOSTNAME, token=None)
+        fetch_org_repos(org_name="", hostname=GITHUB_HOSTNAME, enterprise_token=None)
 
 
 def test_missing_hostname():
     with pytest.raises(APIError):
-        fetch_org_repos(org_name=TECH_AI_ORG_NAME, hostname="", token=None)
+        fetch_org_repos(org_name=TECH_AI_ORG_NAME, hostname="", enterprise_token=None)
 
 
 def test_invalid_json_response(monkeypatch: MonkeyPatch):
@@ -35,20 +35,20 @@ def test_invalid_json_response(monkeypatch: MonkeyPatch):
 
     monkeypatch.setattr("json.loads", mock_json_loads)
     with pytest.raises(APIError) as e:
-        fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME, token=None)
+        fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME, enterprise_token=None)
         assert "JSON response does not match" in e.message
         assert mock_json_loads_called
 
 
 def test_github_hosted_orgs():
-    repos = fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME, token=None)
+    repos = fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME, enterprise_token=None)
     validate_response(TECH_AI_KNOWN_REPOS, repos)
 
 
 @pytest.mark.xfail(reason="Need to setup testing Auth token for self-hosted server")
 def test_self_hosted_org():
-    TOKEN = "todo"
-    repos = fetch_org_repos(TECH_AI_ORG_NAME, SELF_HOSTED_HOSTNAME, TOKEN)
+    ENTERPRISE_TOKEN = "todo"
+    repos = fetch_org_repos(TECH_AI_ORG_NAME, SELF_HOSTED_HOSTNAME, ENTERPRISE_TOKEN)
     validate_response([], repos)
 
 

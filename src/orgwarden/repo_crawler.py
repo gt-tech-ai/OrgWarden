@@ -16,17 +16,17 @@ class AuthError(Exception):
 
 
 def fetch_org_repos(
-    org_name: str, hostname: str, token: str | None
+    org_name: str, hostname: str, enterprise_token: str | None
 ) -> list[Repository]:
     """
     Returns a `Repository` list containing the specified organization's public, non-forked repositories.
     Raises an `APIError` if an error occurs while fetching repositories.
     """
 
-    # authenticate with self-hosted server if token is provided
-    if token is not None:
+    # authenticate with self-hosted server if enterprise_token is provided
+    if enterprise_token is not None:
         auth_res = subprocess.run(
-            f'echo "{token}" | gh auth login --hostname {hostname} --with-token',
+            f'echo "{enterprise_token}" | gh auth login --hostname {hostname} --with-token',
             shell=True,
             capture_output=True,
         )

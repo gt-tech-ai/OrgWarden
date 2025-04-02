@@ -3,7 +3,6 @@ from typer.testing import CliRunner
 from orgwarden.__main__ import app
 from orgwarden.repository import Repository
 from tests.constants import (
-    MOCK_TOKEN,
     ORGWARDEN_REPO_NAME,
     ORGWARDEN_URL,
     TECH_AI_KNOWN_REPOS,
@@ -33,7 +32,9 @@ class TestListReposCommand:
 
     def test_invalid_token(self):
         INVALID_TOKEN = "bad-token-123"
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, "--enterprise-token", INVALID_TOKEN])
+        res = runner.invoke(
+            app, [self.COMMAND, TECH_AI_URL, "--enterprise-token", INVALID_TOKEN]
+        )
         assert res.exit_code != 0
         assert "could not authenticate" in res.stdout
 
@@ -55,7 +56,9 @@ class TestAuditCommand:
 
     def test_invalid_org_token(self):
         INVALID_TOKEN = "bad-token-123"
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, "--token", INVALID_TOKEN])
+        res = runner.invoke(
+            app, [self.COMMAND, TECH_AI_URL, "--enterprise-token", INVALID_TOKEN]
+        )
         assert res.exit_code != 0
         assert "could not authenticate" in res.stdout
 
@@ -63,15 +66,16 @@ class TestAuditCommand:
         """
         Ensures that `audit` command correctly parses url argument and passes correct `Repository` object to `audit_repository`.
         """
+        MOCK_PAT = "github_pat_123"
         mock_audit_repository_called = False
 
         def mock_audit_repository(
-            repo: Repository, token: str | None, capture: bool = False
+            repo: Repository, pat_token: str | None, capture: bool = False
         ) -> tuple[int, str | None]:
             nonlocal mock_audit_repository_called
             mock_audit_repository_called = True
             assert not capture
-            assert token == MOCK_TOKEN
+            assert pat_token == MOCK_PAT
             assert repo.url == ORGWARDEN_URL
             assert repo.name == ORGWARDEN_REPO_NAME
             assert repo.org == TECH_AI_ORG_NAME
@@ -81,7 +85,7 @@ class TestAuditCommand:
             "orgwarden.__main__.audit_repository", mock_audit_repository
         )
 
-        res = runner.invoke(app, [self.COMMAND, ORGWARDEN_URL, "--token", MOCK_TOKEN])
+        res = runner.invoke(app, [self.COMMAND, ORGWARDEN_URL, "--pat-token", MOCK_PAT])
         assert mock_audit_repository_called
         assert res.exit_code == 0
 
@@ -89,6 +93,8 @@ class TestAuditCommand:
         """
         Ensures that `audit` command correctly parses url argument, runs `fetch_org_repos` on the given org, and runs audit `audit_repository` for each returned repository.
         """
+        MOCK_PAT = "github_pat_123"
+        MOCK_ENTERPRISE_TOKEN = "token123"
         mock_repos = [
             Repository(name="repo1", url="url1", org=TECH_AI_ORG_NAME),
             Repository(name="repo2", url="url2", org=TECH_AI_ORG_NAME),
@@ -98,13 +104,13 @@ class TestAuditCommand:
         mock_fetch_org_repos_called = False
 
         def mock_fetch_org_repos(
-            org_name: str, hostname: str, token: str | None
+            org_name: str, hostname: str, enterprise_token: str | None
         ) -> list[Repository]:
             nonlocal mock_fetch_org_repos_called
             mock_fetch_org_repos_called = True
             assert org_name == TECH_AI_ORG_NAME
             assert hostname == GITHUB_HOSTNAME
-            assert token == MOCK_TOKEN
+            assert enterprise_token == MOCK_ENTERPRISE_TOKEN
             return mock_repos
 
         monkeypatch.setattr("orgwarden.__main__.fetch_org_repos", mock_fetch_org_repos)
@@ -112,11 +118,11 @@ class TestAuditCommand:
         mock_audit_repository_calls = 0
 
         def mock_audit_repository(
-            repo: Repository, token: str | None, capture: bool = False
+            repo: Repository, pat_token: str | None, capture: bool = False
         ) -> tuple[int, str | None]:
             nonlocal mock_audit_repository_calls
             mock_audit_repository_calls += 1
-            assert token == MOCK_TOKEN
+            assert pat_token == MOCK_PAT
             assert not capture
             assert repo.org == TECH_AI_ORG_NAME
             return 0, None
@@ -125,7 +131,17 @@ class TestAuditCommand:
             "orgwarden.__main__.audit_repository", mock_audit_repository
         )
 
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, "--token", MOCK_TOKEN])
+        res = runner.invoke(
+            app,
+            [
+                self.COMMAND,
+                TECH_AI_URL,
+                "--pat-token",
+                MOCK_PAT,
+                "--enterprise-token",
+                MOCK_ENTERPRISE_TOKEN,
+            ],
+        )
         assert mock_fetch_org_repos_called
         assert mock_audit_repository_calls == len(mock_repos)
         assert res.exit_code == 0

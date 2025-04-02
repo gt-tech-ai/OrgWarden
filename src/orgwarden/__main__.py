@@ -59,11 +59,18 @@ def audit(
             help="The url for a GitHub repository or organization.", show_default=False
         ),
     ],
-    token: Annotated[
+    pat_token: Annotated[
         str | None,
         typer.Option(
             help="GitHub Personal Access Token (PAT) - must have access to the specified repository or organization. "
             "RepoAuditor's full functionality will not be available if a PAT is not provided.",
+            show_default=False,
+        ),
+    ] = None,
+    enterprise_token: Annotated[
+        str | None,
+        typer.Option(
+            help="GitHub Enterprise Token - required for accessing self-hosted GitHub instances",
             show_default=False,
         ),
     ] = None,
@@ -73,7 +80,7 @@ def audit(
     If the provided <url> is an organization, runs RepoAuditor against all of the organization's public, non-forked repositories.
     """
 
-    if token is None:
+    if pat_token is None:
         typer.echo(
             typer.style(
                 "Running RepoAuditor with limited functionality. Please provide a GitHub PAT for full functionality.",
@@ -93,12 +100,14 @@ def audit(
             url=url,
             org=parsed_url.org_name,
         )
-        exit_code, _ = audit_repository(repo, token)
+        exit_code, _ = audit_repository(repo, pat_token)
         raise typer.Exit(exit_code)
 
     else:  # organization
         try:
-            repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname, token)
+            repos = fetch_org_repos(
+                parsed_url.org_name, parsed_url.hostname, enterprise_token
+            )
         except AuthError as e:
             print_auth_error(e.hostname)
             raise typer.Exit(1)
@@ -108,7 +117,7 @@ def audit(
 
         final_exit_code = 0  # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
         for repo in repos:
-            exit_code, _ = audit_repository(repo, token)
+            exit_code, _ = audit_repository(repo, pat_token)
             final_exit_code = max(final_exit_code, exit_code)
         raise typer.Exit(final_exit_code)
 
@@ -145,7 +154,6 @@ def print_auth_error(hostname: str):
         ),
         err=True,
     )
-    typer.echo(typer.style("Please", fg=typer.colors.CYAN))
 
 
 if __name__ == "__main__":
