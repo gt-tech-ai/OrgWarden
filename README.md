@@ -28,9 +28,11 @@ uv run orgwarden list-repos <org_url>
 ```
 
 ### Audit
-Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the provided url points to a GitHub repository, RepoAuditor will run against said repository. If the provided url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization. 
+Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the provided url points to a GitHub repository, RepoAuditor will run against said repository. If the provided url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization. The `gh-pat` option is a GitHub Personal Access Token (PAT) that is used by RepoAuditor for increased functionality.
+
+*RepoAuditor currently only supports classic PATs.*
 ```bash
-uv run orgwarden audit <repo_or_org_url>
+uv run orgwarden audit <repo_or_org_url> --gh-pat [token]
 ```
 
 

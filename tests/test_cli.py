@@ -5,6 +5,7 @@ from orgwarden.repository import Repository
 from tests.constants import (
     ORGWARDEN_REPO_NAME,
     ORGWARDEN_URL,
+    SELF_HOSTED_ORG_URL,
     TECH_AI_KNOWN_REPOS,
     TECH_AI_ORG_NAME,
     TECH_AI_URL,
@@ -29,6 +30,11 @@ class TestListReposCommand:
             res = runner.invoke(app, [self.COMMAND, org])
             assert res.exit_code == 0
             assert all([repo_name in res.stdout for repo_name in TECH_AI_KNOWN_REPOS])
+
+    def test_missing_auth(self):
+        res = runner.invoke(app, [self.COMMAND, SELF_HOSTED_ORG_URL])
+        assert res.exit_code != 0
+        assert "could not authenticate" in res.stdout
 
     def test_gh_not_installed(self, monkeypatch: MonkeyPatch):
         mock_which_called = False
@@ -61,6 +67,11 @@ class TestAuditCommand:
             assert res.exit_code != 0
             assert f"{url} is invalid" in res.stdout
 
+    def test_missing_auth(self):
+        res = runner.invoke(app, [self.COMMAND, SELF_HOSTED_ORG_URL])
+        assert res.exit_code != 0
+        assert "could not authenticate" in res.stdout
+
     def test_gh_not_installed(self, monkeypatch: MonkeyPatch):
         mock_which_called = False
 
@@ -80,11 +91,13 @@ class TestAuditCommand:
         """
         Ensures that `audit` command correctly parses url argument and passes correct `Repository` object to `audit_repository`.
         """
+        MOCK_PAT = "github_pat_123"
         mock_audit_repository_called = False
 
-        def mock_audit_repository(repo: Repository) -> int:
+        def mock_audit_repository(repo: Repository, gh_pat: str | None) -> int:
             nonlocal mock_audit_repository_called
             mock_audit_repository_called = True
+            assert gh_pat == MOCK_PAT
             assert repo.url == ORGWARDEN_URL
             assert repo.name == ORGWARDEN_REPO_NAME
             assert repo.org == TECH_AI_ORG_NAME
@@ -94,7 +107,7 @@ class TestAuditCommand:
             "orgwarden.__main__.audit_repository", mock_audit_repository
         )
 
-        res = runner.invoke(app, [self.COMMAND, ORGWARDEN_URL])
+        res = runner.invoke(app, [self.COMMAND, ORGWARDEN_URL, "--gh-pat", MOCK_PAT])
         assert mock_audit_repository_called
         assert res.exit_code == 0
 
@@ -102,6 +115,7 @@ class TestAuditCommand:
         """
         Ensures that `audit` command correctly parses url argument, runs `fetch_org_repos` on the given org, and runs audit `audit_repository` for each returned repository.
         """
+        MOCK_PAT = "github_pat_123"
         mock_repos = [
             Repository(name="repo1", url="url1", org=TECH_AI_ORG_NAME),
             Repository(name="repo2", url="url2", org=TECH_AI_ORG_NAME),
@@ -121,9 +135,10 @@ class TestAuditCommand:
 
         mock_audit_repository_calls = 0
 
-        def mock_audit_repository(repo: Repository) -> int:
+        def mock_audit_repository(repo: Repository, gh_pat: str | None) -> int:
             nonlocal mock_audit_repository_calls
             mock_audit_repository_calls += 1
+            assert gh_pat == MOCK_PAT
             assert repo.org == TECH_AI_ORG_NAME
             return 0
 
@@ -131,7 +146,7 @@ class TestAuditCommand:
             "orgwarden.__main__.audit_repository", mock_audit_repository
         )
 
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL])
+        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, "--gh-pat", MOCK_PAT])
         assert mock_fetch_org_repos_called
         assert mock_audit_repository_calls == len(mock_repos)
         assert res.exit_code == 0

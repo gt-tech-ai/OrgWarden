@@ -9,7 +9,17 @@ class APIError(Exception):
         super().__init__(message)
 
 
-def fetch_org_repos(org_name: str, hostname: str) -> list[Repository]:
+class AuthError(Exception):
+    def __init__(self, hostname: str, message: str):
+        self.hostname = hostname
+        self.message = message
+        super().__init__(hostname, message)
+
+
+def fetch_org_repos(
+    org_name: str,
+    hostname: str,
+) -> list[Repository]:
     """
     Returns a `Repository` list containing the specified organization's public, non-forked repositories.
     Raises an `APIError` if an error occurs while fetching repositories.
@@ -28,7 +38,10 @@ def fetch_org_repos(org_name: str, hostname: str) -> list[Repository]:
         capture_output=True,
     )
     if res.stderr:
-        raise APIError(f"Error fetching repos for {org_name}: {res.stderr}")
+        if "Must authenticate" in str(res.stderr):
+            raise AuthError(hostname=hostname, message=res.stderr)
+        else:
+            raise APIError(f"Error fetching repos for {org_name}: {res.stderr}")
 
     org_repo_entries = json.loads(res.stdout)
     if not isinstance(org_repo_entries, list):
