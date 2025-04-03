@@ -65,7 +65,7 @@ def audit(
             url=url,
             org=parsed_url.org_name,
         )
-        exit_code, _ = audit_repository(repo)
+        exit_code = audit_repository(repo)
         sys.exit(exit_code)
 
     else:  # organization
@@ -80,7 +80,7 @@ def audit(
 
         final_exit_code = 0  # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
         for repo in repos:
-            exit_code, _ = audit_repository(repo)
+            exit_code = audit_repository(repo)
             final_exit_code = max(final_exit_code, exit_code)
         sys.exit(final_exit_code)
 

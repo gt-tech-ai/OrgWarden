@@ -82,16 +82,13 @@ class TestAuditCommand:
         """
         mock_audit_repository_called = False
 
-        def mock_audit_repository(
-            repo: Repository, capture: bool = False
-        ) -> tuple[int, str | None]:
+        def mock_audit_repository(repo: Repository) -> int:
             nonlocal mock_audit_repository_called
             mock_audit_repository_called = True
-            assert not capture
             assert repo.url == ORGWARDEN_URL
             assert repo.name == ORGWARDEN_REPO_NAME
             assert repo.org == TECH_AI_ORG_NAME
-            return 0, None
+            return 0
 
         monkeypatch.setattr(
             "orgwarden.__main__.audit_repository", mock_audit_repository
@@ -124,14 +121,11 @@ class TestAuditCommand:
 
         mock_audit_repository_calls = 0
 
-        def mock_audit_repository(
-            repo: Repository, capture: bool = False
-        ) -> tuple[int, str | None]:
+        def mock_audit_repository(repo: Repository) -> int:
             nonlocal mock_audit_repository_calls
             mock_audit_repository_calls += 1
-            assert not capture
             assert repo.org == TECH_AI_ORG_NAME
-            return 0, None
+            return 0
 
         monkeypatch.setattr(
             "orgwarden.__main__.audit_repository", mock_audit_repository
