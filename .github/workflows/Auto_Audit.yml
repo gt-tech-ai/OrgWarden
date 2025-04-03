@@ -1,0 +1,34 @@
+name: Auto Audit
+
+on:
+  push:
+    branches:
+      - feature/auto-audit-workflow
+  schedule:
+    - cron: '0 0 * * *' # daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  Auto-Audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OrgWarden
+        uses: actions/checkout@v4
+        with:
+          repository: gt-tech-ai/OrgWarden
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install Dependencies
+        run: uv sync --frozen
+
+      # Audit the repository in which the workflow is triggered
+      - name: Run Audit
+        run: uv run orgwarden audit "$ORG_URL" --gh-pat "$AUTO_AUDIT_PAT"
+        env:
+          AUTO_AUDIT_PAT: ${{ secrets.AUTO_AUDIT_PAT }}
+          ORG_URL: "${{ github.server_url }}/${{ github.repository_owner }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
