@@ -2,7 +2,7 @@
 
 # 👮‍♀️ OrgWarden (Work In Progress)
 
-*OrgWarden* is a tool for auditing an oganization's repositories.
+*OrgWarden* helps ensure your GitHub organization's repositories follow best practices. Under the hood, OrgWarden uses [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor).
 
 ## Installation
 
@@ -19,11 +19,20 @@ uv sync
 ```
 
 ## Usage
-You can run the tool with `uv`. Currently, this prints all public, non-forked repositories for the specified github organization. In the future, the ability to run audits on each repository will be implemented.
+You can run the tool with `uv`. The available commands are as follows:
 
+### List Repositories
+Lists all public, non-forked repositories for the specified GitHub organization.
 ```bash
-uv run orgwarden <github-org-name>
+uv run orgwarden list-repos <org_url>
 ```
+
+### Audit
+Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the provided url points to a GitHub repository, RepoAuditor will run against said repository. If the provided url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization. 
+```bash
+uv run orgwarden audit <repo_or_org_url>
+```
+
 
 ## Development
 To manually run tests on this project, run the following command:
