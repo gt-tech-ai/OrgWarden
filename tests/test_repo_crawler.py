@@ -1,6 +1,8 @@
+import json
+from subprocess import CompletedProcess
 import pytest
 from pytest import MonkeyPatch
-from orgwarden.repo_crawler import APIError, fetch_org_repos
+from orgwarden.repo_crawler import APIError, AuthError, fetch_org_repos
 from orgwarden.repository import Repository
 from tests.constants import (
     SELF_HOSTED_HOSTNAME,
@@ -17,12 +19,12 @@ def test_no_org_name():
 
 def test_missing_org():
     with pytest.raises(APIError):
-        fetch_org_repos("", GITHUB_HOSTNAME)
+        fetch_org_repos(org_name="", hostname=GITHUB_HOSTNAME)
 
 
 def test_missing_hostname():
     with pytest.raises(APIError):
-        fetch_org_repos(TECH_AI_ORG_NAME, "")
+        fetch_org_repos(org_name=TECH_AI_ORG_NAME, hostname="")
 
 
 def test_gh_not_installed(monkeypatch: MonkeyPatch):
@@ -38,6 +40,11 @@ def test_gh_not_installed(monkeypatch: MonkeyPatch):
     with pytest.raises(FileNotFoundError):
         fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME)
     assert mock_which_called
+
+
+def test_self_hosted_invalid_auth():
+    with pytest.raises(AuthError):
+        fetch_org_repos(org_name=TECH_AI_ORG_NAME, hostname=SELF_HOSTED_HOSTNAME)
 
 
 def test_invalid_json_response(monkeypatch: MonkeyPatch):
@@ -60,12 +67,38 @@ def test_github_hosted_orgs():
     validate_response(TECH_AI_KNOWN_REPOS, repos)
 
 
-@pytest.mark.xfail(
-    reason="Authentication for self-hosted GitHub instances not yet implemented"
-)
-def test_self_hosted_org():
-    repos = fetch_org_repos(TECH_AI_ORG_NAME, SELF_HOSTED_HOSTNAME)
-    validate_response([], repos)
+def test_self_hosted_org(monkeypatch: MonkeyPatch):
+    REPO_NAME = "test-repo"
+    REPO_URL = "https://test-url.com"
+    REPO_ORG = "test-org"
+    mock_gh_called = False
+
+    def mock_gh(cmd: str, shell: bool, capture_output: bool) -> CompletedProcess[str]:
+        nonlocal mock_gh_called
+        mock_gh_called = True
+        assert shell, capture_output
+        assert SELF_HOSTED_HOSTNAME in cmd
+        json_res = json.dumps(
+            [
+                {
+                    "name": REPO_NAME,
+                    "html_url": REPO_URL,
+                    "org": REPO_ORG,
+                    "private": False,
+                    "fork": False,
+                }
+            ]
+        )
+        return CompletedProcess(args=None, returncode=0, stdout=json_res)
+
+    monkeypatch.setattr("subprocess.run", mock_gh)
+
+    repos = fetch_org_repos(REPO_ORG, SELF_HOSTED_HOSTNAME)
+    assert len(repos) == 1
+    repo = repos[0]
+    assert repo.name == REPO_NAME
+    assert repo.url == REPO_URL
+    assert repo.org == REPO_ORG
 
 
 def validate_response(known: list[str], actual: list[Repository]):
