@@ -69,7 +69,7 @@ def audit(
     Runs RepoAuditor against the specified organization or repository.
     """
 
-    if gh_pat is None:
+    if not gh_pat:
         typer.echo(
             typer.style(
                 "Running RepoAuditor with limited functionality. Please provide a GitHub PAT for full functionality.",
