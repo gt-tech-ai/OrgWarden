@@ -53,3 +53,27 @@ def test_orgwarden_repo_with_token(capfd: CaptureFixture, monkeypatch: MonkeyPat
     assert exit_code == 0
     stdout = capfd.readouterr().out
     assert "DONE!" in stdout
+
+
+def test_repo_specifc_cli_flags(monkeypatch: MonkeyPatch):
+    REPO = Repository(
+        name="test_repo",
+        url="test_url",
+        org="test_org",
+        cli_flags="--GitHub-AutoMerge-false --GitHub-License-value MIT",
+    )
+
+    mock_repo_auditor_called = False
+
+    def mock_repo_auditor(cmd: str, shell: bool, text: bool) -> CompletedProcess[str]:
+        nonlocal mock_repo_auditor_called
+        mock_repo_auditor_called = True
+        assert shell, text
+        assert REPO.url in cmd
+        assert f" {REPO.cli_flags}" in cmd
+        return CompletedProcess(args=None, returncode=0)
+
+    monkeypatch.setattr("subprocess.run", mock_repo_auditor)
+    exit_code = audit_repository(REPO, gh_pat=None)
+    assert mock_repo_auditor_called
+    assert exit_code == 0
