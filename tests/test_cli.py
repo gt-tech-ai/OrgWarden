@@ -1,6 +1,7 @@
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 from orgwarden.__main__ import app
+from orgwarden.audit_settings import RepositorySettings, append_settings
 from orgwarden.repository import Repository
 from tests.constants import (
     ORGWARDEN_REPO_NAME,
@@ -54,6 +55,9 @@ class TestListReposCommand:
 
 class TestAuditCommand:
     COMMAND = "audit"
+    fetch_org_repos_IMPORT_PATH = "orgwarden.__main__.fetch_org_repos"
+    append_settings_IMPORT_PATH = "orgwarden.__main__.append_settings"
+    audit_repository_IMPORT_PATH = "orgwarden.__main__.audit_repository"
 
     def test_invalid_urls(self):
         INVALID_URLS = [
@@ -103,9 +107,7 @@ class TestAuditCommand:
             assert repo.org == TECH_AI_ORG_NAME
             return 0
 
-        monkeypatch.setattr(
-            "orgwarden.__main__.audit_repository", mock_audit_repository
-        )
+        monkeypatch.setattr(self.audit_repository_IMPORT_PATH, mock_audit_repository)
 
         res = runner.invoke(app, [self.COMMAND, ORGWARDEN_URL, "--gh-pat", MOCK_PAT])
         assert mock_audit_repository_called
@@ -131,7 +133,7 @@ class TestAuditCommand:
             assert hostname == GITHUB_HOSTNAME
             return mock_repos
 
-        monkeypatch.setattr("orgwarden.__main__.fetch_org_repos", mock_fetch_org_repos)
+        monkeypatch.setattr(self.fetch_org_repos_IMPORT_PATH, mock_fetch_org_repos)
 
         mock_audit_repository_calls = 0
 
@@ -142,11 +144,84 @@ class TestAuditCommand:
             assert repo.org == TECH_AI_ORG_NAME
             return 0
 
-        monkeypatch.setattr(
-            "orgwarden.__main__.audit_repository", mock_audit_repository
-        )
+        monkeypatch.setattr(self.audit_repository_IMPORT_PATH, mock_audit_repository)
 
         res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, "--gh-pat", MOCK_PAT])
         assert mock_fetch_org_repos_called
         assert mock_audit_repository_calls == len(mock_repos)
+        assert res.exit_code == 0
+
+    def test_audit_with_invalid_settings_sequence(self):
+        INVALID_SETTINGS_SEQUENCE = [": bad settings string"]
+
+        res = runner.invoke(
+            app, [self.COMMAND, TECH_AI_URL, *INVALID_SETTINGS_SEQUENCE]
+        )
+        assert res.exit_code != 0
+        assert "Invalid value for settings string" in res.stdout
+
+    def test_append_settings_called_correctly(self, monkeypatch: MonkeyPatch):
+        REPOS = [
+            Repository(name="repo1", url="url1", org=TECH_AI_ORG_NAME),
+            Repository(name="repo2", url="url2", org=TECH_AI_ORG_NAME),
+            Repository(name="repo3", url="url3", org=TECH_AI_ORG_NAME),
+        ]
+        SETTINGS_SEQUENCE = ["repo1: --arg-1 --arg-2", "repo3: --arg-1 --arg-2 --arg-3"]
+        REPOSITORY_SETTINGS = [
+            RepositorySettings("repo1", "--arg-1 --arg-2"),
+            RepositorySettings("repo3", "--arg-1 --arg-2 --arg-3"),
+        ]
+
+        monkeypatch.setattr(
+            self.fetch_org_repos_IMPORT_PATH, lambda *args, **kwargs: REPOS
+        )
+
+        mock_append_settings_called = 0
+
+        def mock_append_settings(
+            repos: list[Repository], settings: list[RepositorySettings]
+        ):
+            nonlocal mock_append_settings_called
+            mock_append_settings_called = True
+            assert repos is REPOS
+            assert settings == REPOSITORY_SETTINGS
+            return append_settings(repos, settings)
+
+        monkeypatch.setattr(self.append_settings_IMPORT_PATH, mock_append_settings)
+
+        monkeypatch.setattr(
+            self.audit_repository_IMPORT_PATH, lambda *args, **kwargs: 0
+        )
+
+        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, *SETTINGS_SEQUENCE])
+        assert mock_append_settings_called
+        assert res.exit_code == 0
+
+    def test_audit_called_with_cli_flags(self, monkeypatch: MonkeyPatch):
+        REPOS = [
+            Repository(name="repo1", url="url1", org=TECH_AI_ORG_NAME),
+            Repository(name="repo2", url="url2", org=TECH_AI_ORG_NAME),
+            Repository(name="repo3", url="url3", org=TECH_AI_ORG_NAME),
+        ]
+        SETTINGS_SEQUENCE = ["repo1: --arg-1 --arg-2", "repo3: --arg-1 --arg-2 --arg-3"]
+        EXPECTED_FLAGS = ["--arg-1 --arg-2", None, "--arg-1 --arg-2 --arg-3"]
+
+        monkeypatch.setattr(
+            self.fetch_org_repos_IMPORT_PATH, lambda *args, **kwargs: REPOS
+        )
+
+        repo_index = 0
+
+        # Check that repository objects passed to audit contain corresponding cli_flags
+        def mock_audit(repo: Repository, gh_pat: str | None) -> int:
+            assert gh_pat is None
+            nonlocal repo_index
+            assert repo.cli_flags == EXPECTED_FLAGS[repo_index]
+            repo_index += 1
+            return 0
+
+        monkeypatch.setattr(self.audit_repository_IMPORT_PATH, mock_audit)
+
+        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, *SETTINGS_SEQUENCE])
+        assert repo_index == len(REPOS)
         assert res.exit_code == 0

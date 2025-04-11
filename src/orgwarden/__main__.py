@@ -1,11 +1,16 @@
 from typing import Annotated
 import typer
 from orgwarden.audit import audit_repository
+from orgwarden.audit_settings import (
+    RepositorySettings,
+    append_settings,
+    parse_settings_string,
+)
 from orgwarden.repository import Repository
 from orgwarden.repo_crawler import AuthError, fetch_org_repos
 from orgwarden.url_tools import validate_url
 
-app = typer.Typer()
+app = typer.Typer(rich_markup_mode="markdown")
 
 
 @app.command()
@@ -56,11 +61,24 @@ def audit(
             show_default=False,
         ),
     ],
+    settings: Annotated[
+        list[RepositorySettings] | None,
+        typer.Argument(
+            parser=parse_settings_string,
+            help="Control which CLI flags are passed to RepoAuditor for specific repositories. "
+            'Each settings string should follow the format: "repo_name: cli_flags". '
+            'You can provide a string for each repository: "repo_one: --flag-1" "repo_two: --flag-1 --flag-2". '
+            "See [OrgWarden docs](https://github.com/gt-tech-ai/OrgWarden#repository-specific-settings) for further details. "
+            "See [RepoAuditor docs](https://github.com/gt-sse-center/RepoAuditor) for available CLI arguments.",
+            show_default=False,
+        ),
+    ] = None,
     gh_pat: Annotated[
         str | None,
         typer.Option(
             help="GitHub Personal Access Token (PAT) - must have access to the specified repository or organization. "
-            "RepoAuditor's full functionality will not be available if a PAT is not provided.",
+            "RepoAuditor's full functionality will not be available if a PAT is not provided. "
+            "See [OrgWarden docs](https://github.com/gt-tech-ai/OrgWarden#setting-up-a-personal-access-token) for help setting up a PAT.",
             show_default=False,
         ),
     ] = None,
@@ -83,14 +101,16 @@ def audit(
         print_invalid_url_msg(url)
         raise typer.Exit(1)
 
+    repos: list[Repository] = []
+
     if parsed_url.repo_name:  # repository
-        repo = Repository(
-            name=parsed_url.repo_name,
-            url=url,
-            org=parsed_url.org_name,
-        )
-        exit_code = audit_repository(repo, gh_pat)
-        raise typer.Exit(exit_code)
+        repos = [
+            Repository(
+                name=parsed_url.repo_name,
+                url=url,
+                org=parsed_url.org_name,
+            )
+        ]
 
     else:  # organization
         try:
@@ -105,11 +125,21 @@ def audit(
             print_general_error(e)
             raise typer.Exit(1)
 
-        final_exit_code = 0  # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
-        for repo in repos:
-            exit_code = audit_repository(repo, gh_pat)
-            final_exit_code = max(final_exit_code, exit_code)
-        raise typer.Exit(final_exit_code)
+    if settings:  # Add Repository-Specific Settings
+        try:
+            repos = append_settings(repos, settings)
+        except Exception as e:
+            print_general_error(e)
+            raise typer.Exit(1)
+
+    # Audit repositories
+    final_exit_code = 0  # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
+    for repo in repos:
+        typer.echo(typer.style(f"Now Auditing: {repo.url}", fg=typer.colors.CYAN))
+
+        exit_code = audit_repository(repo, gh_pat)
+        final_exit_code = max(final_exit_code, exit_code)
+    raise typer.Exit(final_exit_code)
 
 
 def print_invalid_url_msg(url: str):

@@ -14,6 +14,9 @@ def audit_repository(
     if gh_pat is not None:
         command += f" --GitHub-pat {gh_pat}"
 
+    if repo.cli_flags:
+        command += f" {repo.cli_flags}"
+
     audit_res = subprocess.run(
         command,
         shell=True,

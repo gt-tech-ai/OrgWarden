@@ -6,14 +6,14 @@
 
 ## Installation
 
-#### 1. Clone the Repository
+**1. Clone the Repository**
 ```bash
 git clone https://github.com/gt-tech-ai/OrgWarden.git
 
 cd OrgWarden
 ```
 
-#### 2. Sync Project with `uv` - If `uv` is not installed, follow installation instructions [here](https://github.com/astral-sh/uv).
+**2. Sync Project with `uv` - If `uv` is not installed, follow installation instructions [here](https://github.com/astral-sh/uv).**
 ```bash
 uv sync
 ```
@@ -25,23 +25,26 @@ You can run the tool with `uv`. The available commands are as follows:
 ### List Repositories
 Lists all public, non-forked repositories for the specified GitHub organization.
 ```bash
-uv run orgwarden list-repos <org_url>
+uv run orgwarden list-repos [org_url]
 ```
 
 ### Audit
-Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the provided url points to a GitHub repository, RepoAuditor will run against said repository. If the provided url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization. The `gh-pat` option is a GitHub Personal Access Token (PAT) that RepoAuditor requires for full funcionality.
+Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the required `url` argument points to a GitHub repository, RepoAuditor will run against said repository. If the url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization.
+
+The optional `settings` argument allows you to alter audit behavior on an individual repository basis by providing a sequence of settings strings. See [Repository-Specific Settings](#repository-specific-settings) for more information.
+
+The `gh-pat` flag allows you to pass a GitHub Personal Access Token to RepoAuditor and is required for full funcionality. See [Setting Up a Personal Access Token](#setting-up-a-personal-access-token) for more information.
 
 **Note** - If a PAT is not provided, `audit` will run with limited functionality **and will always exit with a non-zero exit code.**
 
 ```bash
-uv run orgwarden audit <repo_or_org_url> --gh-pat [token]
+uv run orgwarden audit [repo_or_org_url] [settings]... --gh-pat <token>
 ```
 
 
 
-## Setting Up a Personal Access Token (PAT)
+## Setting Up a Personal Access Token
 A GitHub Personal Access Token (PAT) is required to make use of OrgWarden's full functionality. GitHub supports two types of Personal Access Tokens - Classic & Fine-grained. Fine-grained tokens provide greater control over permissions, and are recommended over Classic tokens. Either token type may be used with OrgWarden. For more information on Personal Access Tokens, see the [GitHub Docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
-
 
 ### Creating a Fine-grained Personal Access Token
 Your organization *must* be selected as the **Resource owner** for your fine-grained token.
@@ -92,6 +95,29 @@ repo - public_repo ✅
 
 
 
+## Repository-Specific Settings
+OrgWarden allows you to customize RepoAuditor's behavior by specifying CLI flags for each repository.
+
+Settings can be passed to `orgwarden audit` in the form of a key-value settings string. Each *key* should be the name of a repository. Each *value* should contain the specific CLI flags you would like to pass to RepoAuditor. You may provide as many settings strings as you would like. This allows OrgWarden to run RepoAuditor audits with different requirements for each of your organization's repositories.
+
+If you do not provide a settings string for one of your organization's repositories, that repository will be audited without any additional flags and will not be skipped.
+
+**Format:** `"repository_name: cli_flags"`
+
+For example, the following command...
+```bash
+orgwarden audit https://github.com/my-org \
+"my-awesome-next-app: --GitHub-AllowDeletions-true --GitHub-SupportWikis-false" \
+"TopSecretInternalTool: --GitHub-AutoMerge-false"
+```
+...will run RepoAuditor against the `my-awesome-next-app` repository with the `--GitHub-AllowDeletions-true` and `--GitHub-SupportWikis-false` flags, against the `TopSecretInternalTool` repository with the `--GitHub-AutoMerge-false` flag, and with no additional flags for any of `my-org`'s other repositories.
+
+**Note** - If invalid CLI flags are provided for a specific repository, RepoAuditor will fail that repository's audit and OrgWarden will continue auditing any remaining repositories.
+
+For more information on available CLI flags, please visit the [RepoAuditor docs](https://github.com/gt-sse-center/RepoAuditor).
+
+
+
 ## ⚙ Using OrgWarden with GitHub Actions
 OrgWarden can easily be used with GitHub Actions to continually check your organization's public, non-forked repositories for compliance with best practices.
 
@@ -128,7 +154,11 @@ jobs:
 
         # Auditing an Organization with OrgWarden
       - name: Run OrgWarden Audit
-        run: uv run orgwarden audit "$ORG_URL" --gh-pat "$AUTO_AUDIT_PAT"
+        run: |
+          uv run orgwarden audit "$ORG_URL" \
+          "OrgWarden: --GitHub-AutoMerge-false --GitHub-License-value MIT" \
+          "RepoAuditor: --GitHub-RebaseMergeCommit-true" \
+          --gh-pat "$AUTO_AUDIT_PAT"
         env:
           # URL for the organization under which the workflow is triggered
           ORG_URL: "${{ github.server_url }}/${{ github.repository_owner }}"
