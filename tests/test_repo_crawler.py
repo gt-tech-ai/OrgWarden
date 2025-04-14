@@ -1,30 +1,27 @@
 import json
 from subprocess import CompletedProcess
+from types import SimpleNamespace
 import pytest
 from pytest import MonkeyPatch
 from orgwarden.repo_crawler import APIError, AuthError, fetch_org_repos
 from orgwarden.repository import Repository
 from tests.constants import (
-    SELF_HOSTED_HOSTNAME,
-    TECH_AI_KNOWN_REPOS,
     TECH_AI_ORG_NAME,
     GITHUB_HOSTNAME,
 )
 
-
-def test_no_org_name():
-    with pytest.raises(TypeError):
-        fetch_org_repos()
+# gh is run via cli
+gh_IMPORT_PATH = "subprocess.run"
 
 
 def test_missing_org():
-    with pytest.raises(APIError):
-        fetch_org_repos(org_name="", hostname=GITHUB_HOSTNAME)
+    with pytest.raises(ValueError, match="empty string"):
+        _ = fetch_org_repos(org_name="", hostname="host")
 
 
 def test_missing_hostname():
-    with pytest.raises(APIError):
-        fetch_org_repos(org_name=TECH_AI_ORG_NAME, hostname="")
+    with pytest.raises(ValueError, match="empty string"):
+        _ = fetch_org_repos(org_name="org", hostname="")
 
 
 def test_gh_not_installed(monkeypatch: MonkeyPatch):
@@ -37,86 +34,116 @@ def test_gh_not_installed(monkeypatch: MonkeyPatch):
         return None
 
     monkeypatch.setattr("shutil.which", mock_which)
-    with pytest.raises(FileNotFoundError):
-        fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME)
+    with pytest.raises(FileNotFoundError, match="GitHub CLI is not installed"):
+        _ = fetch_org_repos("org", "host")
     assert mock_which_called
 
 
-def test_self_hosted_invalid_auth():
-    with pytest.raises(AuthError):
-        fetch_org_repos(org_name=TECH_AI_ORG_NAME, hostname=SELF_HOSTED_HOSTNAME)
-
-
-def test_invalid_json_response(monkeypatch: MonkeyPatch):
-    mock_json_loads_called = False
-
-    def mock_json_loads(_: str):
-        nonlocal mock_json_loads_called
-        mock_json_loads_called = True
-        return {}
-
-    monkeypatch.setattr("json.loads", mock_json_loads)
-    with pytest.raises(APIError) as e:
-        fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME)
-        assert "JSON response does not match" in e.message
-        assert mock_json_loads_called
-
-
-def test_github_hosted_orgs():
-    repos = fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME)
-    validate_response(TECH_AI_KNOWN_REPOS, repos)
-
-
-def test_self_hosted_org(monkeypatch: MonkeyPatch):
-    REPO_NAME = "test-repo"
-    REPO_URL = "https://test-url.com"
-    REPO_ORG = "test-org"
+def test_gh_called_correctly(monkeypatch: MonkeyPatch):
     mock_gh_called = False
 
     def mock_gh(cmd: str, shell: bool, capture_output: bool) -> CompletedProcess[str]:
         nonlocal mock_gh_called
         mock_gh_called = True
         assert shell, capture_output
-        assert SELF_HOSTED_HOSTNAME in cmd
-        json_res = json.dumps(
-            [
-                {
-                    "name": REPO_NAME,
-                    "html_url": REPO_URL,
-                    "org": REPO_ORG,
-                    "private": False,
-                    "fork": False,
-                }
-            ]
-        )
-        return CompletedProcess(args=None, returncode=0, stdout=json_res)
+        assert TECH_AI_ORG_NAME in cmd, GITHUB_HOSTNAME in cmd
+        return SimpleNamespace(stderr=None, stdout="[]")
 
-    monkeypatch.setattr("subprocess.run", mock_gh)
+    monkeypatch.setattr(gh_IMPORT_PATH, mock_gh)
 
-    repos = fetch_org_repos(REPO_ORG, SELF_HOSTED_HOSTNAME)
-    assert len(repos) == 1
-    repo = repos[0]
-    assert repo.name == REPO_NAME
-    assert repo.url == REPO_URL
-    assert repo.org == REPO_ORG
+    _ = fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME)
+    assert mock_gh_called
 
 
-def validate_response(known: list[str], actual: list[Repository]):
-    # check for duplicates
-    unique = []
-    for repo in actual:
-        assert repo not in unique
-        unique.append(repo)
+def test_invalid_auth(monkeypatch: MonkeyPatch):
+    monkeypatch.setattr(
+        gh_IMPORT_PATH,
+        lambda *args, **kwargs: SimpleNamespace(stderr="Must authenticate"),
+    )
+    with pytest.raises(AuthError, match="Must authenticate"):
+        _ = fetch_org_repos("org", "host")
 
-    # ensure response includes known repositories
-    actual_names = []
-    for repo in actual:
-        actual_names.append(repo.name)
-    for repo in known:
-        assert repo in actual_names
 
-    # ensure response excludes .github
-    assert ".github" not in actual_names
+def test_generic_api_error(monkeypatch: MonkeyPatch):
+    monkeypatch.setattr(
+        gh_IMPORT_PATH,
+        lambda *args, **kwargs: SimpleNamespace(stderr="Some general API error"),
+    )
+    with pytest.raises(APIError, match="Some general API error"):
+        _ = fetch_org_repos("org", "host")
 
-    # ensure response excludes forks
-    # cannot check currently as gt-tech-ai currently has no public forks
+
+def test_invalid_json_response(monkeypatch: MonkeyPatch):
+    monkeypatch.setattr(
+        gh_IMPORT_PATH, lambda *args, **kwargs: SimpleNamespace(stderr="", stdout="{}")
+    )
+    with pytest.raises(APIError, match="JSON response does not match"):
+        _ = fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME)
+
+
+def test_api_response_parsing(monkeypatch: MonkeyPatch):
+    JSON_OUTPUT = [
+        {
+            "name": "repo1",
+            "html_url": "url1",
+            "private": False,
+            "fork": False,
+        },
+        {
+            "name": "repo2",
+            "html_url": "url2",
+            "private": False,
+            "fork": False,
+        },
+        {
+            "name": "repo3",
+            "html_url": "url3",
+            "private": False,
+            "fork": False,
+        },
+    ]
+    EXPECTED_REPOS = [
+        Repository("repo1", "url1", TECH_AI_ORG_NAME),
+        Repository("repo2", "url2", TECH_AI_ORG_NAME),
+        Repository("repo3", "url3", TECH_AI_ORG_NAME),
+    ]
+    monkeypatch.setattr(
+        gh_IMPORT_PATH,
+        lambda *args, **kwargs: SimpleNamespace(
+            stderr="", stdout=json.dumps(JSON_OUTPUT)
+        ),
+    )
+    repos = fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME)
+    for actual, expected in zip(repos, EXPECTED_REPOS):
+        assert actual == expected
+
+
+def test_skips_private_forks_dotgithub(monkeypatch: MonkeyPatch):
+    JSON_OUTPUT = [
+        {
+            "name": ".github",
+            "html_url": "url",
+            "private": False,
+            "fork": False,
+        },
+        {
+            "name": "private_repo",
+            "html_url": "url",
+            "private": True,
+            "fork": False,
+        },
+        {
+            "name": "forked_repo",
+            "html_url": "url",
+            "private": False,
+            "fork": True,
+        },
+    ]
+    monkeypatch.setattr(
+        gh_IMPORT_PATH,
+        lambda *args, **kwargs: SimpleNamespace(
+            stderr="", stdout=json.dumps(JSON_OUTPUT)
+        ),
+    )
+    repos = fetch_org_repos("org", "host")
+    assert len(repos) == 0

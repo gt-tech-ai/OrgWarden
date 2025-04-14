@@ -26,6 +26,11 @@ def fetch_org_repos(
     Raises a `FileNotFoundError` if the GitHub CLI is not installed.
     """
 
+    if not org_name:
+        raise ValueError("org_name is an empty string.")
+    if not hostname:
+        raise ValueError("hostname is an empty string.")
+
     # check if gh cli is installed
     if shutil.which("gh") is None:
         raise FileNotFoundError("GitHub CLI is not installed.")
