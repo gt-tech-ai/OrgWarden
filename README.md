@@ -31,14 +31,14 @@ uv run orgwarden list-repos [org_url]
 ### Audit
 Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) tooling. If the required `url` argument points to a GitHub repository, RepoAuditor will run against said repository. If the url points to a GitHub organization, RepoAuditor will run against all public, non-forked repositories within said organization.
 
-The optional `settings` argument allows you to alter audit behavior on an individual repository basis by providing a sequence of settings strings. See [Repository-Specific Settings](#repository-specific-settings) for more information.
+The optional `settings_sequence` argument allows you to alter audit behavior on an individual repository basis by providing a sequence of settings strings. See [Repository-Specific Settings](#repository-specific-settings) for more information.
 
 The `gh-pat` flag allows you to pass a GitHub Personal Access Token to RepoAuditor and is required for full funcionality. See [Setting Up a Personal Access Token](#setting-up-a-personal-access-token) for more information.
 
 **Note** - If a PAT is not provided, `audit` will run with limited functionality **and will always exit with a non-zero exit code.**
 
 ```bash
-uv run orgwarden audit [repo_or_org_url] [settings]... --gh-pat <token>
+uv run orgwarden audit [repo_or_org_url] [settings_sequence]... --gh-pat <token>
 ```
 
 

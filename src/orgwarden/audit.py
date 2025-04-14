@@ -4,6 +4,7 @@ from orgwarden.repo_crawler import Repository
 
 def audit_repository(
     repo: Repository,
+    audit_settings: dict[str, str] | None,
     gh_pat: str | None,
 ) -> int:
     """
@@ -14,8 +15,8 @@ def audit_repository(
     if gh_pat is not None:
         command += f" --GitHub-pat {gh_pat}"
 
-    if repo.cli_flags:
-        command += f" {repo.cli_flags}"
+    if audit_settings and repo.name in audit_settings:
+        command += f" {audit_settings[repo.name]}"
 
     audit_res = subprocess.run(
         command,

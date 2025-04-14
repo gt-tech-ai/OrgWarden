@@ -14,6 +14,3 @@ ORGWARDEN_REPO = Repository(
 
 GITHUB_HOSTNAME = "github.com"
 TECH_AI_KNOWN_REPOS = [ORGWARDEN_REPO_NAME]
-
-SELF_HOSTED_HOSTNAME = "github.gatech.edu"
-SELF_HOSTED_ORG_URL = "https://github.gatech.edu/gt-tech-ai"

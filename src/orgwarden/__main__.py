@@ -1,9 +1,10 @@
 from typing import Annotated
 import typer
+from orgwarden import typer_print_functions as tpf
 from orgwarden.audit import audit_repository
 from orgwarden.audit_settings import (
-    RepositorySettings,
-    append_settings,
+    RepoAuditSettings,
+    get_audit_settings,
     parse_settings_string,
 )
 from orgwarden.repository import Repository
@@ -29,20 +30,20 @@ def list_repos(
 
     try:
         parsed_url = validate_url(url)
-    except ValueError:
-        print_invalid_url_msg(url)
+    except ValueError as e:
+        tpf.print_invalid_url_msg(e)
         raise typer.Exit(1)
 
     try:
         repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname)
     except FileNotFoundError:
-        print_gh_not_installed()
+        tpf.print_gh_not_installed()
         raise typer.Exit(1)
     except AuthError as e:
-        print_auth_error(e.hostname)
+        tpf.print_auth_error(e.hostname)
         raise typer.Exit(1)
     except Exception as e:
-        print_general_error(e)
+        tpf.print_general_error(e)
         raise typer.Exit(1)
 
     print(f"~~~~~ Public repositories found for {url} ~~~~~")
@@ -61,8 +62,8 @@ def audit(
             show_default=False,
         ),
     ],
-    settings: Annotated[
-        list[RepositorySettings] | None,
+    settings_sequence: Annotated[
+        list[RepoAuditSettings] | None,
         typer.Argument(
             parser=parse_settings_string,
             help="Control which CLI flags are passed to RepoAuditor for specific repositories. "
@@ -97,8 +98,8 @@ def audit(
 
     try:
         parsed_url = validate_url(url)
-    except ValueError:
-        print_invalid_url_msg(url)
+    except ValueError as e:
+        tpf.print_invalid_url_msg(e)
         raise typer.Exit(1)
 
     repos: list[Repository] = []
@@ -116,20 +117,27 @@ def audit(
         try:
             repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname)
         except FileNotFoundError:
-            print_gh_not_installed()
+            tpf.print_gh_not_installed()
             raise typer.Exit(1)
         except AuthError as e:
-            print_auth_error(e.hostname)
+            tpf.print_auth_error(e.hostname)
             raise typer.Exit(1)
         except Exception as e:
-            print_general_error(e)
+            tpf.print_general_error(e)
             raise typer.Exit(1)
 
-    if settings:  # Add Repository-Specific Settings
+    # Add Repository-Specific Settings
+    audit_settings = None
+    if settings_sequence:
         try:
-            repos = append_settings(repos, settings)
+            audit_settings = get_audit_settings(settings_sequence)
+            # check for unused settings & warn user
+            all_repo_names = {repo.name for repo in repos}
+            for repo_name in audit_settings.keys():
+                if repo_name not in all_repo_names:
+                    tpf.print_unused_settings_warning(repo_name)
         except Exception as e:
-            print_general_error(e)
+            tpf.print_general_error(e)
             raise typer.Exit(1)
 
     # Audit repositories
@@ -137,52 +145,9 @@ def audit(
     for repo in repos:
         typer.echo(typer.style(f"Now Auditing: {repo.url}", fg=typer.colors.CYAN))
 
-        exit_code = audit_repository(repo, gh_pat)
+        exit_code = audit_repository(repo, audit_settings, gh_pat)
         final_exit_code = max(final_exit_code, exit_code)
     raise typer.Exit(final_exit_code)
-
-
-def print_invalid_url_msg(url: str):
-    typer.echo(
-        typer.style(
-            f"Error: {url} is invalid.",
-            fg=typer.colors.RED,
-        ),
-        err=True,
-    )
-    typer.echo(
-        typer.style(
-            "Example: https://github.com/gt-tech-ai/OrgWarden",
-            fg=typer.colors.GREEN,
-        ),
-        err=True,
-    )
-
-
-def print_gh_not_installed():
-    typer.echo(
-        typer.style("The GitHub CLI is not installed.", fg=typer.colors.RED), err=True
-    )
-    typer.echo(
-        typer.style(
-            "Please follow the installation instructions here: https://github.com/cli/cli#installation",
-            fg=typer.colors.CYAN,
-        )
-    )
-
-
-def print_auth_error(hostname: str):
-    typer.echo(
-        typer.style(
-            f"Error: could not authenticate with {hostname}. Please ensure the provided token is valid.",
-            fg=typer.colors.RED,
-        ),
-        err=True,
-    )
-
-
-def print_general_error(message: str):
-    typer.echo(typer.style(message, fg=typer.colors.RED), err=True)
 
 
 if __name__ == "__main__":

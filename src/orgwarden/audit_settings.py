@@ -1,12 +1,10 @@
-from copy import deepcopy
 import re
 import typer
-from orgwarden.repository import Repository
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class RepositorySettings:
+class RepoAuditSettings:
     repo_name: str
     cli_flags: str
 
@@ -23,10 +21,10 @@ $           # end of string
 SETTINGS_REGEX = re.compile(SETTINGS_PATTERN, re.VERBOSE)
 
 
-def parse_settings_string(value: str) -> RepositorySettings:
+def parse_settings_string(value: str) -> RepoAuditSettings:
     match = SETTINGS_REGEX.match(value)
     ERROR = typer.BadParameter(
-        f'Your input: "{value}" does not match pattern expected pattern. Example: "repo_name: --flag-1 --flag-2"',
+        f'Your input: "{value}" does not match expected pattern. Example: "repo_name: --flag-1 --flag-2"',
         param_hint="settings string",
     )
     if not match:
@@ -35,44 +33,23 @@ def parse_settings_string(value: str) -> RepositorySettings:
     if not key or not val:
         raise ERROR
 
-    return RepositorySettings(key, val)
+    return RepoAuditSettings(key, val)
 
 
-def append_settings(
-    repos: list[Repository], settings: list[RepositorySettings]
-) -> list[Repository]:
+def get_audit_settings(settings_sequence: list[RepoAuditSettings]) -> dict[str, str]:
     """
-    Returns a copy of provided `repos` list with `cli_flags` settings appended.
+    Returns a dictionary of `repo_name`: `cli_flags`.
     """
-    flags_dict: dict[str, str] = {}
 
-    for repo_settings in settings:
+    audit_settings: dict[str, str] = {}
+
+    for repo_settings in settings_sequence:
         repo_name, cli_flags = repo_settings.repo_name, repo_settings.cli_flags
-        if repo_name in flags_dict:
+        if repo_name in audit_settings:
             raise ValueError(
                 f"Repository settings sequence contains multiple entries for {repo_name}."
             )
-        flags_dict[repo_name] = cli_flags
+        if cli_flags:  # skip empty string
+            audit_settings[repo_name] = cli_flags
 
-    copied_repos = deepcopy(repos)
-    for repo in copied_repos:
-        if repo.name in flags_dict:
-            flags = flags_dict[repo.name]
-            if flags:  # skip empty string
-                repo.cli_flags = flags
-
-    # check for unused settings & warn user
-    for repo in copied_repos:
-        if repo.name in flags_dict:
-            del flags_dict[repo.name]
-    if len(flags_dict) != 0:
-        for repo_name in flags_dict.keys():
-            typer.echo(
-                typer.style(
-                    f"Settings for {repo_name} were provided, but this repository is not being audited.",
-                    fg=typer.colors.YELLOW,
-                ),
-                err=True,
-            )
-
-    return copied_repos
+    return audit_settings

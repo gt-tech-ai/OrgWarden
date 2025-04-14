@@ -1,227 +1,147 @@
-from pytest import MonkeyPatch
+from types import SimpleNamespace
+from pytest import CaptureFixture, MonkeyPatch
 from typer.testing import CliRunner
 from orgwarden.__main__ import app
-from orgwarden.audit_settings import RepositorySettings, append_settings
+from orgwarden.audit_settings import RepoAuditSettings, get_audit_settings
 from orgwarden.repository import Repository
 from tests.constants import (
-    ORGWARDEN_REPO_NAME,
     ORGWARDEN_URL,
-    SELF_HOSTED_ORG_URL,
     TECH_AI_KNOWN_REPOS,
     TECH_AI_ORG_NAME,
     TECH_AI_URL,
-    GITHUB_HOSTNAME,
 )
 
+validate_url_IMPORT_PATH = "orgwarden.__main__.validate_url"
+fetch_org_repos_IMPORT_PATH = "orgwarden.__main__.fetch_org_repos"
+get_audit_settings_IMPORT_PATH = "orgwarden.__main__.get_audit_settings"
+audit_repository_IMPORT_PATH = "orgwarden.__main__.audit_repository"
+gh_cli_IMPORT_PATH = "subprocess.run"
+
+
 runner = CliRunner()
+
+
+class TestSharedFunctionality:
+    """
+    Tests code pathways followed by both the `list-repos` and `audit` commands.
+    """
+
+    COMMANDS = ["list-repos", "audit"]
+
+    def test_handles_invalid_url(self):
+        for command in self.COMMANDS:
+            res = runner.invoke(app, [command, "bad-url"])
+            assert res.exit_code != 0
+            assert "not a valid URL" in res.stdout
+            assert "Example: " in res.stdout
+
+    def test_handles_gh_not_installed(self, monkeypatch: MonkeyPatch):
+        for command in self.COMMANDS:
+            monkeypatch.setattr("shutil.which", lambda *args, **kwargs: None)
+
+            res = runner.invoke(app, [command, TECH_AI_URL])
+            assert res.exit_code != 0
+            assert "GitHub CLI is not installed" in res.stdout
+            assert "Please follow the installation instructions" in res.stdout
+
+    def test_handles_gh_auth_error(self, monkeypatch: MonkeyPatch):
+        for command in self.COMMANDS:
+            monkeypatch.setattr(
+                gh_cli_IMPORT_PATH,
+                lambda *args, **kwargs: SimpleNamespace(stderr="Must authenticate"),
+            )
+            res = runner.invoke(app, [command, TECH_AI_URL])
+            assert res.exit_code != 0
+            assert "could not authenticate" in res.stdout
+
+    def test_handles_general_gh_error(self, monkeypatch: MonkeyPatch):
+        for command in self.COMMANDS:
+            monkeypatch.setattr(
+                gh_cli_IMPORT_PATH,
+                lambda *args, **kwargs: SimpleNamespace(
+                    stderr="some general api error"
+                ),
+            )
+            res = runner.invoke(app, [command, TECH_AI_URL])
+            assert res.exit_code != 0
+            assert "Error fetching repos" in res.stdout
 
 
 class TestListReposCommand:
     COMMAND = "list-repos"
 
-    def test_invalid_orgs(self):
-        INVALID_URLS = ["", "example.com", "https://github.com"]
-        for org in INVALID_URLS:
-            res = runner.invoke(app, [self.COMMAND, org])
-            assert res.exit_code != 0
-
-    def test_valid_orgs(self):
-        VALID_URLS = [TECH_AI_URL]
-        for org in VALID_URLS:
-            res = runner.invoke(app, [self.COMMAND, org])
-            assert res.exit_code == 0
-            assert all([repo_name in res.stdout for repo_name in TECH_AI_KNOWN_REPOS])
-
-    def test_missing_auth(self):
-        res = runner.invoke(app, [self.COMMAND, SELF_HOSTED_ORG_URL])
-        assert res.exit_code != 0
-        assert "could not authenticate" in res.stdout
-
-    def test_gh_not_installed(self, monkeypatch: MonkeyPatch):
-        mock_which_called = False
-
-        def mock_which(cmd: str) -> str | None:
-            nonlocal mock_which_called
-            mock_which_called = True
-            assert cmd == "gh"
-            return None
-
-        monkeypatch.setattr("shutil.which", mock_which)
+    def test_happy_path(self):
         res = runner.invoke(app, [self.COMMAND, TECH_AI_URL])
-        assert res.exit_code != 0
-        assert "GitHub CLI is not installed" in res.stdout
-        assert mock_which_called
+        assert res.exit_code == 0
+        for repo_name in TECH_AI_KNOWN_REPOS:
+            assert repo_name in res.stdout
 
 
 class TestAuditCommand:
     COMMAND = "audit"
-    fetch_org_repos_IMPORT_PATH = "orgwarden.__main__.fetch_org_repos"
-    append_settings_IMPORT_PATH = "orgwarden.__main__.append_settings"
-    audit_repository_IMPORT_PATH = "orgwarden.__main__.audit_repository"
 
-    def test_invalid_urls(self):
-        INVALID_URLS = [
-            "",  # empty url
-            "/gt-tech-ai/OrgWarden",  # missing site
-            "github.com/gt-tech-ai/OrgWarden",  # missing protocol
-            "https://github.com/gt-tech-ai/OrgWarden/extra-bits",  # path too long
-        ]
-        for url in INVALID_URLS:
-            res = runner.invoke(app, [self.COMMAND, url])
-            assert res.exit_code != 0
-            assert f"{url} is invalid" in res.stdout
+    def test_happy_paths(self, capfd: CaptureFixture):
+        """
+        Run happy path for auditing a repository and auditing an org.
+        """
+        for url in [ORGWARDEN_URL, TECH_AI_URL]:
+            _ = runner.invoke(app, [self.COMMAND, url])
+            stdout = capfd.readouterr().out
+            assert "DONE" in stdout
+            assert url in stdout
 
-    def test_missing_auth(self):
-        res = runner.invoke(app, [self.COMMAND, SELF_HOSTED_ORG_URL])
+    def test_handles_unused_settings_entries(
+        self, monkeypatch: MonkeyPatch, capfd: CaptureFixture
+    ):
+        REPOS = [Repository("repo_one", "url", "org")]
+        SETTINGS_SEQUENCE = ["repo_one: --flag-1", "extra_repo: --flag-1 --flag-2"]
+        monkeypatch.setattr(fetch_org_repos_IMPORT_PATH, lambda *args, **kwargs: REPOS)
+        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, *SETTINGS_SEQUENCE])
+        assert "this repository is not being audited" in res.stdout
+
+        _ = capfd.readouterr()  # prevents error output from RepoAuditor
+        # due to invalid flags from polluting test output
+
+    def test_handles_duplicate_settings_entries(self):
+        SETTINGS_SEQUENCE = ["repo: --flag-1", "repo: --flag-1 --flag-2"]
+        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, *SETTINGS_SEQUENCE])
         assert res.exit_code != 0
-        assert "could not authenticate" in res.stdout
+        assert "contains multiple entries" in res.stdout
 
-    def test_gh_not_installed(self, monkeypatch: MonkeyPatch):
-        mock_which_called = False
-
-        def mock_which(cmd: str) -> str | None:
-            nonlocal mock_which_called
-            mock_which_called = True
-            assert cmd == "gh"
-            return None
-
-        monkeypatch.setattr("shutil.which", mock_which)
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL])
-        assert res.exit_code != 0
-        assert "GitHub CLI is not installed" in res.stdout
-        assert mock_which_called
-
-    def test_audit_with_repo_url(self, monkeypatch: MonkeyPatch):
-        """
-        Ensures that `audit` command correctly parses url argument and passes correct `Repository` object to `audit_repository`.
-        """
-        MOCK_PAT = "github_pat_123"
-        mock_audit_repository_called = False
-
-        def mock_audit_repository(repo: Repository, gh_pat: str | None) -> int:
-            nonlocal mock_audit_repository_called
-            mock_audit_repository_called = True
-            assert gh_pat == MOCK_PAT
-            assert repo.url == ORGWARDEN_URL
-            assert repo.name == ORGWARDEN_REPO_NAME
-            assert repo.org == TECH_AI_ORG_NAME
-            return 0
-
-        monkeypatch.setattr(self.audit_repository_IMPORT_PATH, mock_audit_repository)
-
-        res = runner.invoke(app, [self.COMMAND, ORGWARDEN_URL, "--gh-pat", MOCK_PAT])
-        assert mock_audit_repository_called
-        assert res.exit_code == 0
-
-    def test_audit_with_org_url(self, monkeypatch: MonkeyPatch):
-        """
-        Ensures that `audit` command correctly parses url argument, runs `fetch_org_repos` on the given org, and runs audit `audit_repository` for each returned repository.
-        """
-        MOCK_PAT = "github_pat_123"
-        mock_repos = [
-            Repository(name="repo1", url="url1", org=TECH_AI_ORG_NAME),
-            Repository(name="repo2", url="url2", org=TECH_AI_ORG_NAME),
-            Repository(name="repo3", url="url3", org=TECH_AI_ORG_NAME),
-        ]
-
-        mock_fetch_org_repos_called = False
-
-        def mock_fetch_org_repos(org_name: str, hostname: str) -> list[Repository]:
-            nonlocal mock_fetch_org_repos_called
-            mock_fetch_org_repos_called = True
-            assert org_name == TECH_AI_ORG_NAME
-            assert hostname == GITHUB_HOSTNAME
-            return mock_repos
-
-        monkeypatch.setattr(self.fetch_org_repos_IMPORT_PATH, mock_fetch_org_repos)
-
-        mock_audit_repository_calls = 0
-
-        def mock_audit_repository(repo: Repository, gh_pat: str | None) -> int:
-            nonlocal mock_audit_repository_calls
-            mock_audit_repository_calls += 1
-            assert gh_pat == MOCK_PAT
-            assert repo.org == TECH_AI_ORG_NAME
-            return 0
-
-        monkeypatch.setattr(self.audit_repository_IMPORT_PATH, mock_audit_repository)
-
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, "--gh-pat", MOCK_PAT])
-        assert mock_fetch_org_repos_called
-        assert mock_audit_repository_calls == len(mock_repos)
-        assert res.exit_code == 0
-
-    def test_audit_with_invalid_settings_sequence(self):
-        INVALID_SETTINGS_SEQUENCE = [": bad settings string"]
-
-        res = runner.invoke(
-            app, [self.COMMAND, TECH_AI_URL, *INVALID_SETTINGS_SEQUENCE]
-        )
-        assert res.exit_code != 0
-        assert "Invalid value for settings string" in res.stdout
-
-    def test_append_settings_called_correctly(self, monkeypatch: MonkeyPatch):
+    # not needed for coverage, but worth explicitly testing
+    def test_repository_settings_passed_correctly(self, monkeypatch: MonkeyPatch):
         REPOS = [
             Repository(name="repo1", url="url1", org=TECH_AI_ORG_NAME),
             Repository(name="repo2", url="url2", org=TECH_AI_ORG_NAME),
             Repository(name="repo3", url="url3", org=TECH_AI_ORG_NAME),
         ]
         SETTINGS_SEQUENCE = ["repo1: --arg-1 --arg-2", "repo3: --arg-1 --arg-2 --arg-3"]
-        REPOSITORY_SETTINGS = [
-            RepositorySettings("repo1", "--arg-1 --arg-2"),
-            RepositorySettings("repo3", "--arg-1 --arg-2 --arg-3"),
+        EXPECTED_REPO_SETTINGS = [
+            RepoAuditSettings("repo1", "--arg-1 --arg-2"),
+            RepoAuditSettings("repo3", "--arg-1 --arg-2 --arg-3"),
         ]
+        EXPECTED_AUDIT_SETTINGS = {
+            "repo1": "--arg-1 --arg-2",
+            "repo3": "--arg-1 --arg-2 --arg-3",
+        }
+        monkeypatch.setattr(fetch_org_repos_IMPORT_PATH, lambda *args, **kwargs: REPOS)
+        mock_get_audit_settings_called = False
 
-        monkeypatch.setattr(
-            self.fetch_org_repos_IMPORT_PATH, lambda *args, **kwargs: REPOS
-        )
+        def mock_get_audit_settings(settings_sequence: list[RepoAuditSettings]):
+            nonlocal mock_get_audit_settings_called
+            mock_get_audit_settings_called = True
+            assert settings_sequence == EXPECTED_REPO_SETTINGS
+            actual_audit_settings = get_audit_settings(settings_sequence)
+            assert actual_audit_settings == EXPECTED_AUDIT_SETTINGS
+            return actual_audit_settings
 
-        mock_append_settings_called = 0
+        monkeypatch.setattr(get_audit_settings_IMPORT_PATH, mock_get_audit_settings)
 
-        def mock_append_settings(
-            repos: list[Repository], settings: list[RepositorySettings]
-        ):
-            nonlocal mock_append_settings_called
-            mock_append_settings_called = True
-            assert repos is REPOS
-            assert settings == REPOSITORY_SETTINGS
-            return append_settings(repos, settings)
-
-        monkeypatch.setattr(self.append_settings_IMPORT_PATH, mock_append_settings)
-
-        monkeypatch.setattr(
-            self.audit_repository_IMPORT_PATH, lambda *args, **kwargs: 0
-        )
-
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, *SETTINGS_SEQUENCE])
-        assert mock_append_settings_called
-        assert res.exit_code == 0
-
-    def test_audit_called_with_cli_flags(self, monkeypatch: MonkeyPatch):
-        REPOS = [
-            Repository(name="repo1", url="url1", org=TECH_AI_ORG_NAME),
-            Repository(name="repo2", url="url2", org=TECH_AI_ORG_NAME),
-            Repository(name="repo3", url="url3", org=TECH_AI_ORG_NAME),
-        ]
-        SETTINGS_SEQUENCE = ["repo1: --arg-1 --arg-2", "repo3: --arg-1 --arg-2 --arg-3"]
-        EXPECTED_FLAGS = ["--arg-1 --arg-2", None, "--arg-1 --arg-2 --arg-3"]
-
-        monkeypatch.setattr(
-            self.fetch_org_repos_IMPORT_PATH, lambda *args, **kwargs: REPOS
-        )
-
-        repo_index = 0
-
-        # Check that repository objects passed to audit contain corresponding cli_flags
-        def mock_audit(repo: Repository, gh_pat: str | None) -> int:
-            assert gh_pat is None
-            nonlocal repo_index
-            assert repo.cli_flags == EXPECTED_FLAGS[repo_index]
-            repo_index += 1
+        def mock_audit(_repo: Repository, audit_settings: dict[str, str], _gh_pat):
+            assert audit_settings == EXPECTED_AUDIT_SETTINGS
             return 0
 
-        monkeypatch.setattr(self.audit_repository_IMPORT_PATH, mock_audit)
-
+        monkeypatch.setattr(audit_repository_IMPORT_PATH, mock_audit)
         res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, *SETTINGS_SEQUENCE])
-        assert repo_index == len(REPOS)
+        assert mock_get_audit_settings_called
         assert res.exit_code == 0

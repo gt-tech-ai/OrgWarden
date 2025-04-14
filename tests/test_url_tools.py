@@ -2,22 +2,18 @@ import pytest
 from orgwarden.url_tools import validate_url
 
 
-def test_no_url():
-    with pytest.raises(TypeError):
-        validate_url()
-
-
 def test_invalid_urls():
     INVALID_URLS = [
         "",  # empty url
         "github.com/gt-tech-ai/OrgWarden",  # missing protocol
-        "https://gt-tech-ai/OrgWarden"  # missing site
+        "https://gt-tech-ai/OrgWarden"  # missing top-level domain
         "/gt-tech-ai/OrgWarden",  # missing site and protocol
         "https://github.com/gt-tech-ai/OrgWarden/extra-bits",  # path too long
+        "https://github.com",  # no path
     ]
     for url in INVALID_URLS:
-        with pytest.raises(ValueError):
-            validate_url(url)
+        with pytest.raises(ValueError, match="not a valid URL"):
+            _ = validate_url(url)
 
 
 def test_org_urls():

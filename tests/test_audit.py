@@ -1,79 +1,56 @@
 from subprocess import CompletedProcess
 from orgwarden.audit import audit_repository
-import pytest
-from pytest import CaptureFixture, MonkeyPatch
+from pytest import MonkeyPatch
+from types import SimpleNamespace
 
 from orgwarden.repository import Repository
 from tests.constants import ORGWARDEN_REPO, ORGWARDEN_URL
 
-
-def test_no_repository():
-    with pytest.raises(TypeError):
-        audit_repository()
+# RepoAuditor is run via cli
+repo_auditor_IMPORT_PATH = "subprocess.run"
 
 
-def test_invalid_repository(capfd: CaptureFixture):
-    exit_code = audit_repository(
-        repo=Repository(
-            name="invalid-repo", url="https://example.com", org="invalid-org"
-        ),
-        gh_pat=None,
-    )
-    assert exit_code != 0
-    stdout = capfd.readouterr().out
-    assert "not a valid GitHub repository" in stdout
-
-
-def test_orgwarden_repo_no_token(capfd: CaptureFixture):
-    _ = audit_repository(repo=ORGWARDEN_REPO, gh_pat=None)
-    # cannot check exit_code, as this is dependent on whether OrgWarden passes audit
-    stdout = capfd.readouterr().out
-    assert "Results: DONE!" in stdout
-    assert ORGWARDEN_URL in stdout
-    assert "not a valid GitHub repository" not in stdout
-    assert "please provide the GitHub PAT" in stdout
-
-
-def test_orgwarden_repo_with_token(capfd: CaptureFixture, monkeypatch: MonkeyPatch):
-    PAT = "github_pat_123"
+def test_repo_auditor_called_correctly(monkeypatch: MonkeyPatch):
     mock_repo_auditor_called = False
 
     def mock_repo_auditor(cmd: str, shell: bool, text: bool) -> CompletedProcess[str]:
         nonlocal mock_repo_auditor_called
         mock_repo_auditor_called = True
         assert shell, text
-        assert ORGWARDEN_URL in cmd
-        assert PAT in cmd
-        print("DONE!")
-        return CompletedProcess(args=None, returncode=0)
+        assert (
+            cmd == f"uv run repo_auditor --include GitHub --GitHub-url {ORGWARDEN_URL}"
+        )
+        return SimpleNamespace(returncode=0, stdout="")
 
-    monkeypatch.setattr("subprocess.run", mock_repo_auditor)
-    exit_code = audit_repository(repo=ORGWARDEN_REPO, gh_pat=PAT)
-    assert mock_repo_auditor_called
+    monkeypatch.setattr(repo_auditor_IMPORT_PATH, mock_repo_auditor)
+    exit_code = audit_repository(ORGWARDEN_REPO, None, None)
     assert exit_code == 0
-    stdout = capfd.readouterr().out
-    assert "DONE!" in stdout
+    assert mock_repo_auditor_called
+
+
+def test_passing_github_pat(monkeypatch: MonkeyPatch):
+    PAT = "github_pat_123"
+
+    def mock_repo_auditor(cmd: str, *args, **kwargs):
+        assert f"--GitHub-pat {PAT}" in cmd
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(repo_auditor_IMPORT_PATH, mock_repo_auditor)
+    exit_code = audit_repository(repo=ORGWARDEN_REPO, audit_settings=None, gh_pat=PAT)
+    assert exit_code == 0
 
 
 def test_repo_specifc_cli_flags(monkeypatch: MonkeyPatch):
-    REPO = Repository(
-        name="test_repo",
-        url="test_url",
-        org="test_org",
-        cli_flags="--GitHub-AutoMerge-false --GitHub-License-value MIT",
-    )
+    REPO = Repository(name="test_repo", url="test_url", org="test_org")
+    FLAGS_DICT = {
+        "other_repo": "--flag-3",
+        "test_repo": "--flag-1 --flag-2",
+    }
 
-    mock_repo_auditor_called = False
+    def mock_repo_auditor(cmd: str, *args, **kwargs):
+        assert " --flag-1 --flag-2" in cmd
+        return SimpleNamespace(returncode=0)
 
-    def mock_repo_auditor(cmd: str, shell: bool, text: bool) -> CompletedProcess[str]:
-        nonlocal mock_repo_auditor_called
-        mock_repo_auditor_called = True
-        assert shell, text
-        assert REPO.url in cmd
-        assert f" {REPO.cli_flags}" in cmd
-        return CompletedProcess(args=None, returncode=0)
-
-    monkeypatch.setattr("subprocess.run", mock_repo_auditor)
-    exit_code = audit_repository(REPO, gh_pat=None)
-    assert mock_repo_auditor_called
+    monkeypatch.setattr(repo_auditor_IMPORT_PATH, mock_repo_auditor)
+    exit_code = audit_repository(REPO, audit_settings=FLAGS_DICT, gh_pat=None)
     assert exit_code == 0
