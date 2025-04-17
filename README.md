@@ -120,14 +120,20 @@ For more information on available CLI flags, please visit the [RepoAuditor docs]
 
 
 ## ⚙ Using OrgWarden with GitHub Actions
-OrgWarden can easily be used with GitHub Actions to continually check your organization's public, non-forked repositories for compliance with best practices.
+OrgWarden can be used with GitHub Actions to ensure your organization's repositories comply with best practices.
 
-The provided example workflow runs OrgWarden on a daily basis. Note that the workflow run will fail if any of your organization's repositories fail an audit. Information on specific audit errors can be found in the failed workflow's logs.
+We've created an easy to use [GitHub Action](/action.yml) that you can include in your workflows. The action will fail if any of your repositories fail an audit. Information on specific audit failures can be found in your workflow's logs.
+You can use our action with the following inputs:
 
-To securely use a PAT in a workflow, you can add your token as a [GitHub Actions Secret](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions). In the example workflow, a token is stored as a secret named `AUTO_AUDIT_PAT`.
+| Input | Required | Description |
+| ----- | -------- | ----------- |
+| org-url | yes | Full URL of the GitHub organization you would like to audit. |
+| github-pat | yes | Your GitHub Personal Access Token (PAT). Store your token as a [GitHub Actions Secret](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions). |
+| repository-audit-settings | no | Sequence of repository-specific audit settings. |
 
+### Example: Using OrgWarden in a Workflow
 ```yaml
-name: Auto Audit
+name: OrgWarden
 
 on:
   schedule:
@@ -135,33 +141,16 @@ on:
   workflow_dispatch: # enables manual trigger
 
 jobs:
-  Auto-Audit:
+  Run-OrgWarden:
     runs-on: ubuntu-latest
     steps:
-        # Setup OrgWarden ----------------
-      - name: Checkout OrgWarden
-        uses: actions/checkout@v4
+      - uses: gt-tech-ai/OrgWarden@v0
         with:
-          repository: gt-tech-ai/OrgWarden
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
-
-      - name: Install Dependencies
-        run: uv sync --frozen
-        # --------------------------------
-
-        # Auditing an Organization with OrgWarden
-      - name: Run OrgWarden
-        run: |
-          uv run orgwarden audit "$ORG_URL" $"GITHUB_PAT" \
-          "OrgWarden: --GitHub-AutoMerge-false --GitHub-License-value MIT" \
-          "RepoAuditor: --GitHub-RebaseMergeCommit-true"
-        env:
-          # URL for the organization under which the workflow is triggered
-          ORG_URL: "${{ github.server_url }}/${{ github.repository_owner }}"
-          # Your PAT stored as a GitHub Secret
-          GITHUB_PAT: ${{ secrets.ORGWARDEN_GITHUB_PAT }}
+          org-url: https://github.com/my-org
+          github-pat: ${{ secrets.ORGWARDEN_AUDIT_PAT }}
+          repository-audit-settings: >
+            "my-awesome-repo: --GitHub-AutoMerge-false --GitHub-License-value MIT"
+            "secret-internal-tool: --GitHub-SupportProjects-false"
 ```
 
 

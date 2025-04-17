@@ -1,0 +1,51 @@
+name: OrgWarden
+author: Tech AI
+description: |
+  Audit an organization for best practices with OrgWarden.
+  See https://github.com/gt-tech-ai/OrgWarden for more information.
+branding:
+  icon: lock
+  color: blue
+
+inputs:
+  org-url:
+    description: |
+      Full URL of the GitHub organization you would like to audit.
+      Example: https://github.com/gt-tech-ai
+    required: true
+  github-pat:
+    description: |
+      A GitHub Personal Access Token (PAT).
+      See https://github.com/gt-tech-ai/OrgWarden#setting-up-a-personal-access-token for help.
+    required: true
+  repository-audit-settings:
+    description: |
+      Allows you to alter audit behavior on an individual repository basis by providing a sequence of settings strings.
+      See https://github.com/gt-tech-ai/OrgWarden#repository-specific-settings for help.
+      Example format: "OrgWarden: --GitHub-AutoMerge-false" "my-repo: --GitHub-License-value MIT"
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout OrgWarden Locally
+      uses: actions/checkout@v4
+      with:
+        repository: gt-tech-ai/OrgWarden
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install Dependencies
+      run: uv sync --frozen --quiet
+      shell: bash
+
+    - name: Run OrgWarden
+      run: |
+        # OrgWarden
+        CYAN="\033[0;36m"
+        echo -e "${CYAN}Now Running OrgWarden"
+
+        uv run orgwarden audit ${{ inputs.org-url }} ${{ inputs.github-pat }} ${{ inputs.repository-audit-settings }}
+      shell: bash
+      
