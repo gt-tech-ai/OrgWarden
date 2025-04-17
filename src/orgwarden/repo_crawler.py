@@ -1,12 +1,15 @@
-import json
-import shutil
-import subprocess
+import requests
 from orgwarden.repository import Repository
 
 
 class APIError(Exception):
     def __init__(self, message: str):
         super().__init__(message)
+
+
+JSON_SCHEMA_ERROR = APIError(
+    "The GitHub API response does not match expected JSON schema."
+)
 
 
 class AuthError(Exception):
@@ -16,14 +19,11 @@ class AuthError(Exception):
         super().__init__(hostname, message)
 
 
-def fetch_org_repos(
-    org_name: str,
-    hostname: str,
-) -> list[Repository]:
+def fetch_org_repos(org_name: str, hostname: str, gh_pat: str) -> list[Repository]:
     """
     Returns a `Repository` list containing the specified organization's public, non-forked repositories.
-    Raises an `APIError` if an error occurs while fetching repositories.
-    Raises a `FileNotFoundError` if the GitHub CLI is not installed.
+    Raises an `AuthError` if OrgWarden lacks authorization with GitHub API.
+    Raises an `APIError` if an other error occurs while fetching repositories, or the JSON response does not match expected schema.
     """
 
     if not org_name:
@@ -31,36 +31,58 @@ def fetch_org_repos(
     if not hostname:
         raise ValueError("hostname is an empty string.")
 
-    # check if gh cli is installed
-    if shutil.which("gh") is None:
-        raise FileNotFoundError("GitHub CLI is not installed.")
+    BASE_URL = (
+        "https://api.github.com"
+        if "github.com" in hostname or "www.github.com" in hostname
+        else f"https://{hostname}/api/v3"
+    )
+    HEADERS = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Authorization": f"Bearer {gh_pat}",
+    }
 
     org_repo_entries: list[dict] = []  # unfiltered api response
 
-    res = subprocess.run(
-        f"gh api orgs/{org_name}/repos --hostname {hostname} --paginate",
-        shell=True,
-        capture_output=True,
-    )
-    if res.stderr:
-        if "Must authenticate" in str(res.stderr):
-            raise AuthError(hostname=hostname, message=res.stderr)
-        else:
-            raise APIError(f"Error fetching repos for {org_name}: {res.stderr}")
+    page_num = 1
+    while True:
+        res = requests.get(
+            f"{BASE_URL}/orgs/{org_name}/repos",
+            params={
+                "page": page_num,
+                "per_page": 100,  # max value
+            },
+            headers=HEADERS,
+        )
 
-    org_repo_entries = json.loads(res.stdout)
-    if not isinstance(org_repo_entries, list):
-        raise APIError("API JSON response does not match expected schema")
+        if res.status_code == 401 or res.status_code == 403:
+            raise AuthError(hostname, message=res.json())
+        if res.status_code != 200:
+            raise APIError(f"Error fetching repos for {org_name}: {res.json()}")
+
+        data = res.json()
+        if not isinstance(data, list):
+            raise JSON_SCHEMA_ERROR
+        if not data:  # end of paginated results
+            break
+
+        page_num += 1
+        org_repo_entries += data
 
     # Build filtered list of Repositories
     repositories: list[Repository] = []
     for repo_entry in org_repo_entries:
-        if repo_entry["private"]:
-            continue  # do not include private repositories (for now?)
-        if repo_entry["name"] == ".github":
-            continue  # ignore config repo
-        if repo_entry["fork"]:
-            continue  # ignore forks
+        if not isinstance(repo_entry, dict):
+            raise JSON_SCHEMA_ERROR
+        try:
+            if repo_entry["private"]:
+                continue  # do not include private repositories (for now?)
+            if repo_entry["name"] == ".github":
+                continue  # ignore config repo
+            if repo_entry["fork"]:
+                continue  # ignore forks
+        except KeyError:
+            raise JSON_SCHEMA_ERROR
 
         repositories.append(
             Repository(

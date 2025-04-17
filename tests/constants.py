@@ -1,4 +1,10 @@
 from orgwarden.repository import Repository
+import dotenv
+import os
+
+dotenv.load_dotenv()  # load from .env during local testing
+GITHUB_PAT = os.environ["GITHUB_PAT"]
+# will raise KeyError if variable is not set
 
 TECH_AI_URL = "https://github.com/gt-tech-ai"
 TECH_AI_ORG_NAME = "gt-tech-ai"

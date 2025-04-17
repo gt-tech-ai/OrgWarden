@@ -14,6 +14,13 @@ from orgwarden.url_tools import validate_url
 app = typer.Typer(rich_markup_mode="markdown")
 
 
+def reject_empty_string(value: str):
+    if not value:
+        raise typer.BadParameter("Input cannot be an empty string.")
+    else:
+        return value
+
+
 @app.command()
 def list_repos(
     url: Annotated[
@@ -21,6 +28,16 @@ def list_repos(
         typer.Argument(
             help="The url of a GitHub organization. Ex: 'https://github.com/gt-tech-ai'",
             show_default=False,
+            callback=reject_empty_string,
+        ),
+    ],
+    gh_pat: Annotated[
+        str,
+        typer.Argument(
+            help="A GitHub Personal Access Token (PAT) - must have access to the specified organization. "
+            "See [OrgWarden docs](https://github.com/gt-tech-ai/OrgWarden#setting-up-a-personal-access-token) for help setting up a PAT.",
+            show_default=False,
+            callback=reject_empty_string,
         ),
     ],
 ) -> None:
@@ -35,10 +52,7 @@ def list_repos(
         raise typer.Exit(1)
 
     try:
-        repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname)
-    except FileNotFoundError:
-        tpf.print_gh_not_installed()
-        raise typer.Exit(1)
+        repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname, gh_pat)
     except AuthError as e:
         tpf.print_auth_error(e.hostname)
         raise typer.Exit(1)
@@ -60,6 +74,16 @@ def audit(
             "If the provided <url> points to a repository, RepoAuditor runs against that repository. "
             "If the provided <url> points to an organization, RepoAuditor runs against all of that organization's public, non-forked repositories.",
             show_default=False,
+            callback=reject_empty_string,
+        ),
+    ],
+    gh_pat: Annotated[
+        str,
+        typer.Argument(
+            help="A GitHub Personal Access Token (PAT) - must have access to the specified repository or organization. "
+            "See [OrgWarden docs](https://github.com/gt-tech-ai/OrgWarden#setting-up-a-personal-access-token) for help setting up a PAT.",
+            show_default=False,
+            callback=reject_empty_string,
         ),
     ],
     settings_sequence: Annotated[
@@ -74,27 +98,10 @@ def audit(
             show_default=False,
         ),
     ] = None,
-    gh_pat: Annotated[
-        str | None,
-        typer.Option(
-            help="GitHub Personal Access Token (PAT) - must have access to the specified repository or organization. "
-            "RepoAuditor's full functionality will not be available if a PAT is not provided. "
-            "See [OrgWarden docs](https://github.com/gt-tech-ai/OrgWarden#setting-up-a-personal-access-token) for help setting up a PAT.",
-            show_default=False,
-        ),
-    ] = None,
 ) -> None:
     """
     Runs RepoAuditor against the specified organization or repository.
     """
-
-    if not gh_pat:
-        typer.echo(
-            typer.style(
-                "Running RepoAuditor with limited functionality. Please provide a GitHub PAT for full functionality.",
-                fg=typer.colors.CYAN,
-            )
-        )
 
     try:
         parsed_url = validate_url(url)
@@ -115,10 +122,7 @@ def audit(
 
     else:  # organization
         try:
-            repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname)
-        except FileNotFoundError:
-            tpf.print_gh_not_installed()
-            raise typer.Exit(1)
+            repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname, gh_pat)
         except AuthError as e:
             tpf.print_auth_error(e.hostname)
             raise typer.Exit(1)
@@ -145,7 +149,7 @@ def audit(
     for repo in repos:
         typer.echo(typer.style(f"Now Auditing: {repo.url}", fg=typer.colors.CYAN))
 
-        exit_code = audit_repository(repo, audit_settings, gh_pat)
+        exit_code = audit_repository(repo, gh_pat, audit_settings)
         final_exit_code = max(final_exit_code, exit_code)
     raise typer.Exit(final_exit_code)
 
