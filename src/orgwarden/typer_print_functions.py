@@ -22,18 +22,6 @@ def print_invalid_url_msg(message: str):
     )
 
 
-def print_gh_not_installed():
-    typer.echo(
-        typer.style("The GitHub CLI is not installed.", fg=typer.colors.RED), err=True
-    )
-    typer.echo(
-        typer.style(
-            "Please follow the installation instructions here: https://github.com/cli/cli#installation",
-            fg=typer.colors.CYAN,
-        )
-    )
-
-
 def print_auth_error(hostname: str):
     typer.echo(
         typer.style(

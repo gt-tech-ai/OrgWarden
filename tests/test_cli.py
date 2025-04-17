@@ -1,10 +1,13 @@
 from types import SimpleNamespace
 from pytest import CaptureFixture, MonkeyPatch
+import pytest
+from typer import BadParameter
 from typer.testing import CliRunner
-from orgwarden.__main__ import app
+from orgwarden.__main__ import app, reject_empty_string
 from orgwarden.audit_settings import RepoAuditSettings, get_audit_settings
 from orgwarden.repository import Repository
 from tests.constants import (
+    GITHUB_PAT,
     ORGWARDEN_URL,
     TECH_AI_KNOWN_REPOS,
     TECH_AI_ORG_NAME,
@@ -15,10 +18,17 @@ validate_url_IMPORT_PATH = "orgwarden.__main__.validate_url"
 fetch_org_repos_IMPORT_PATH = "orgwarden.__main__.fetch_org_repos"
 get_audit_settings_IMPORT_PATH = "orgwarden.__main__.get_audit_settings"
 audit_repository_IMPORT_PATH = "orgwarden.__main__.audit_repository"
-gh_cli_IMPORT_PATH = "subprocess.run"
-
+requests_get_IMPORT_PATH = "requests.get"
 
 runner = CliRunner()
+
+
+def test_reject_empty_string():
+    with pytest.raises(BadParameter, match="empty string"):
+        _ = reject_empty_string("")
+
+    val = reject_empty_string("not empty")
+    assert val == "not empty"
 
 
 class TestSharedFunctionality:
@@ -30,39 +40,32 @@ class TestSharedFunctionality:
 
     def test_handles_invalid_url(self):
         for command in self.COMMANDS:
-            res = runner.invoke(app, [command, "bad-url"])
+            res = runner.invoke(app, [command, "bad-url", "pat"])
             assert res.exit_code != 0
             assert "not a valid URL" in res.stdout
             assert "Example: " in res.stdout
 
-    def test_handles_gh_not_installed(self, monkeypatch: MonkeyPatch):
-        for command in self.COMMANDS:
-            monkeypatch.setattr("shutil.which", lambda *args, **kwargs: None)
-
-            res = runner.invoke(app, [command, TECH_AI_URL])
-            assert res.exit_code != 0
-            assert "GitHub CLI is not installed" in res.stdout
-            assert "Please follow the installation instructions" in res.stdout
-
-    def test_handles_gh_auth_error(self, monkeypatch: MonkeyPatch):
+    def test_handles_api_auth_error(self, monkeypatch: MonkeyPatch):
         for command in self.COMMANDS:
             monkeypatch.setattr(
-                gh_cli_IMPORT_PATH,
-                lambda *args, **kwargs: SimpleNamespace(stderr="Must authenticate"),
+                requests_get_IMPORT_PATH,
+                lambda *args, **kwargs: SimpleNamespace(
+                    status_code=403, json=lambda: {"message": "could not authenticate"}
+                ),
             )
-            res = runner.invoke(app, [command, TECH_AI_URL])
+            res = runner.invoke(app, [command, TECH_AI_URL, "pat"])
             assert res.exit_code != 0
             assert "could not authenticate" in res.stdout
 
-    def test_handles_general_gh_error(self, monkeypatch: MonkeyPatch):
+    def test_handles_general_api_error(self, monkeypatch: MonkeyPatch):
         for command in self.COMMANDS:
             monkeypatch.setattr(
-                gh_cli_IMPORT_PATH,
+                requests_get_IMPORT_PATH,
                 lambda *args, **kwargs: SimpleNamespace(
-                    stderr="some general api error"
+                    status_code=400, json=lambda: {"message": "some general api error"}
                 ),
             )
-            res = runner.invoke(app, [command, TECH_AI_URL])
+            res = runner.invoke(app, [command, TECH_AI_URL, "pat"])
             assert res.exit_code != 0
             assert "Error fetching repos" in res.stdout
 
@@ -71,7 +74,7 @@ class TestListReposCommand:
     COMMAND = "list-repos"
 
     def test_happy_path(self):
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL])
+        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, GITHUB_PAT])
         assert res.exit_code == 0
         for repo_name in TECH_AI_KNOWN_REPOS:
             assert repo_name in res.stdout
@@ -85,7 +88,7 @@ class TestAuditCommand:
         Run happy path for auditing a repository and auditing an org.
         """
         for url in [ORGWARDEN_URL, TECH_AI_URL]:
-            _ = runner.invoke(app, [self.COMMAND, url])
+            _ = runner.invoke(app, [self.COMMAND, url, GITHUB_PAT])
             stdout = capfd.readouterr().out
             assert "DONE" in stdout
             assert url in stdout
@@ -96,7 +99,9 @@ class TestAuditCommand:
         REPOS = [Repository("repo_one", "url", "org")]
         SETTINGS_SEQUENCE = ["repo_one: --flag-1", "extra_repo: --flag-1 --flag-2"]
         monkeypatch.setattr(fetch_org_repos_IMPORT_PATH, lambda *args, **kwargs: REPOS)
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, *SETTINGS_SEQUENCE])
+        res = runner.invoke(
+            app, [self.COMMAND, TECH_AI_URL, GITHUB_PAT, *SETTINGS_SEQUENCE]
+        )
         assert "this repository is not being audited" in res.stdout
 
         _ = capfd.readouterr()  # prevents error output from RepoAuditor
@@ -104,7 +109,9 @@ class TestAuditCommand:
 
     def test_handles_duplicate_settings_entries(self):
         SETTINGS_SEQUENCE = ["repo: --flag-1", "repo: --flag-1 --flag-2"]
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, *SETTINGS_SEQUENCE])
+        res = runner.invoke(
+            app, [self.COMMAND, TECH_AI_URL, GITHUB_PAT, *SETTINGS_SEQUENCE]
+        )
         assert res.exit_code != 0
         assert "contains multiple entries" in res.stdout
 
@@ -137,11 +144,13 @@ class TestAuditCommand:
 
         monkeypatch.setattr(get_audit_settings_IMPORT_PATH, mock_get_audit_settings)
 
-        def mock_audit(_repo: Repository, audit_settings: dict[str, str], _gh_pat):
+        def mock_audit(_repo: Repository, _gh_pat: str, audit_settings: dict[str, str]):
             assert audit_settings == EXPECTED_AUDIT_SETTINGS
             return 0
 
         monkeypatch.setattr(audit_repository_IMPORT_PATH, mock_audit)
-        res = runner.invoke(app, [self.COMMAND, TECH_AI_URL, *SETTINGS_SEQUENCE])
+        res = runner.invoke(
+            app, [self.COMMAND, TECH_AI_URL, GITHUB_PAT, *SETTINGS_SEQUENCE]
+        )
         assert mock_get_audit_settings_called
         assert res.exit_code == 0
