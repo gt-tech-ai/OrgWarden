@@ -188,7 +188,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "repoauditor", specifier = ">=0.1.22" },
+    { name = "repoauditor", specifier = ">=0.1.24,<1.0.0" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "typer", specifier = ">=0.15.2" },
 ]
@@ -267,7 +267,7 @@ wheels = [
 
 [[package]]
 name = "repoauditor"
-version = "0.1.22"
+version = "0.1.24"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dbrownell-common" },
@@ -276,7 +276,7 @@ dependencies = [
     { name = "typer" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/6d/928e676f4c38a24485f1d07859af2ee76f8c51ae38fcad392fe83083b331/RepoAuditor-0.1.22-py3-none-any.whl", hash = "sha256:f5c24e8b3bc2075535c759ad5648147cbd2e87a63ac089487b235b3a3b2387eb", size = 69136 },
+    { url = "https://files.pythonhosted.org/packages/68/e8/d0c8a8cdc13be1b128c924c2c57e8173b72121cef839223a5d11fd5a0f75/repoauditor-0.1.24-py3-none-any.whl", hash = "sha256:44ca692ac566ce2b184701c7b95f729b1c52d5c1da0244f595619bd3531d031f", size = 69205 },
 ]
 
 [[package]]
