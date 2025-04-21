@@ -18,6 +18,13 @@ inputs:
       A GitHub Personal Access Token (PAT).
       See https://github.com/gt-tech-ai/OrgWarden#setting-up-a-personal-access-token for help.
     required: true
+  modules:
+    description: |
+      The RepoAuditor modules you would like to run. If not provided, OrgWarden will run all RepoAuditor modules.
+      Modules should be deliminated by a single space.
+      Example: "GitHub My-Module GitHub-Customization"
+      See https://github.com/gt-sse-center/RepoAuditor for available modules.
+    required: False
   repository-audit-settings:
     description: |
       Allows you to alter audit behavior on an individual repository basis by providing a sequence of settings strings.
@@ -45,7 +52,16 @@ runs:
         # OrgWarden
         CYAN="\033[0;36m"
         echo -e "${CYAN}Now Running OrgWarden"
+        
+        command="uv run orgwarden audit ${{ inputs.org-url }} ${{ inputs.github-pat }} ${{ inputs.repository-audit-settings }}"
+        
+        if [ -n "${{ inputs.modules }}" ]; then
+          modules=(${{ inputs.modules }})
+          for module in "${modules[@]}"; do
+            command+=" --module $module"
+          done
+        fi
 
-        uv run orgwarden audit ${{ inputs.org-url }} ${{ inputs.github-pat }} ${{ inputs.repository-audit-settings }}
+        eval "$command"
       shell: bash
       

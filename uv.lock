@@ -188,7 +188,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "repoauditor", specifier = ">=0.1.24,<1.0.0" },
+    { name = "repoauditor", specifier = ">=0.1.24" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "typer", specifier = ">=0.15.2" },
 ]

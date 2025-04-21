@@ -1,5 +1,5 @@
 from subprocess import CompletedProcess
-from orgwarden.audit import audit_repository
+from orgwarden.audit import audit_repository, KNOWN_MODULES
 from pytest import MonkeyPatch
 from types import SimpleNamespace
 
@@ -24,9 +24,29 @@ def test_repo_auditor_called_correctly(monkeypatch: MonkeyPatch):
         return SimpleNamespace(returncode=0, stdout="")
 
     monkeypatch.setattr(repo_auditor_IMPORT_PATH, mock_repo_auditor)
-    exit_code = audit_repository(ORGWARDEN_REPO, GITHUB_PAT, None)
+    exit_code = audit_repository(
+        ORGWARDEN_REPO, GITHUB_PAT, audit_settings=None, modules=None
+    )
     assert exit_code == 0
     assert mock_repo_auditor_called
+
+
+def test_specific_modules(monkeypatch: MonkeyPatch):
+    MODULES = ["module1", "module2", "module3"]
+
+    def mock_repo_auditor(cmd: str, *args, **kwargs):
+        for module in MODULES:
+            assert f"--include {module}" in cmd
+        # ensure default modules not included
+        for module in KNOWN_MODULES:
+            assert f"--include {module}" not in cmd
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(repo_auditor_IMPORT_PATH, mock_repo_auditor)
+    exit_code = audit_repository(
+        ORGWARDEN_REPO, gh_pat=GITHUB_PAT, audit_settings=None, modules=MODULES
+    )
+    assert exit_code == 0
 
 
 def test_repo_specifc_cli_flags(monkeypatch: MonkeyPatch):
@@ -41,5 +61,7 @@ def test_repo_specifc_cli_flags(monkeypatch: MonkeyPatch):
         return SimpleNamespace(returncode=0)
 
     monkeypatch.setattr(repo_auditor_IMPORT_PATH, mock_repo_auditor)
-    exit_code = audit_repository(REPO, audit_settings=FLAGS_DICT, gh_pat=GITHUB_PAT)
+    exit_code = audit_repository(
+        REPO, gh_pat=GITHUB_PAT, audit_settings=FLAGS_DICT, modules=None
+    )
     assert exit_code == 0
