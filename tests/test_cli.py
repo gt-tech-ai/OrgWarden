@@ -144,7 +144,7 @@ class TestAuditCommand:
 
         monkeypatch.setattr(get_audit_settings_IMPORT_PATH, mock_get_audit_settings)
 
-        def mock_audit(_repo: Repository, _gh_pat: str, audit_settings: dict[str, str]):
+        def mock_audit(_repo, _gh_pat, audit_settings: dict[str, str], *args, **kwargs):
             assert audit_settings == EXPECTED_AUDIT_SETTINGS
             return 0
 
@@ -153,4 +153,25 @@ class TestAuditCommand:
             app, [self.COMMAND, TECH_AI_URL, GITHUB_PAT, *SETTINGS_SEQUENCE]
         )
         assert mock_get_audit_settings_called
+        assert res.exit_code == 0
+
+    def test_modules_flag(self, monkeypatch: MonkeyPatch):
+        def mock_audit(_repo, _gh_pat, _audit_settings, modules: list[str]):
+            assert "module-1" in modules
+            assert "module-2" in modules
+            return 0
+
+        monkeypatch.setattr(audit_repository_IMPORT_PATH, mock_audit)
+        res = runner.invoke(
+            app,
+            [
+                self.COMMAND,
+                TECH_AI_URL,
+                GITHUB_PAT,
+                "--module",
+                "module-1",
+                "--module",
+                "module-2",
+            ],
+        )
         assert res.exit_code == 0

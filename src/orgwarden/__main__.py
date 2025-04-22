@@ -98,6 +98,16 @@ def audit(
             show_default=False,
         ),
     ] = None,
+    modules: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--module",
+            help="The RepoAuditor modules you would like to run. Defaults to all modules. "
+            "Can be provided multiple times. Example: '--module GitHub --module GitHub-Customization'. "
+            "See [RepoAuditor docs](https://github.com/gt-sse-center/RepoAuditor) for available modules.",
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """
     Runs RepoAuditor against the specified organization or repository.
@@ -149,7 +159,7 @@ def audit(
     for repo in repos:
         typer.echo(typer.style(f"Now Auditing: {repo.url}", fg=typer.colors.CYAN))
 
-        exit_code = audit_repository(repo, gh_pat, audit_settings)
+        exit_code = audit_repository(repo, gh_pat, audit_settings, modules)
         final_exit_code = max(final_exit_code, exit_code)
     raise typer.Exit(final_exit_code)
 

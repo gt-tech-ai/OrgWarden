@@ -38,8 +38,10 @@ The `gh-pat` argument is a GitHub Personal Access Token (PAT) that is used to ac
 
 The optional `settings_sequence` argument allows you to alter audit behavior on an individual repository basis by providing a sequence of settings strings. See [Repository-Specific Settings](#repository-specific-settings) for more information.
 
+The optional `--module` flag allows you to specify which RepoAuditor modules you would like to include in the audit. All available modules will run if none are specified. See [RepoAuditor docs](https://github.com/gt-sse-center/RepoAuditor) for more information on available modules.
+
 ```bash
-uv run orgwarden audit [repo_or_org_url] [gh_pat] [settings_sequence]...
+uv run orgwarden audit [repo_or_org_url] [gh_pat] [settings_sequence]... --module <module_1> --module <module_2>
 ```
 
 
@@ -129,6 +131,7 @@ You can use our action with the following inputs:
 | ----- | -------- | ----------- |
 | org-url | yes | Full URL of the GitHub organization you would like to audit. |
 | github-pat | yes | Your GitHub Personal Access Token (PAT). Store your token as a [GitHub Actions Secret](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions). |
+| modules | no | Specific RepoAuditor modules to run, separated by a space. |
 | repository-audit-settings | no | Sequence of repository-specific audit settings. |
 
 ### Example: Using OrgWarden in a Workflow
@@ -148,6 +151,7 @@ jobs:
         with:
           org-url: https://github.com/my-org
           github-pat: ${{ secrets.ORGWARDEN_AUDIT_PAT }}
+          modules: GitHub GitHub-Customization
           repository-audit-settings: >
             "my-awesome-repo: --GitHub-AutoMerge-false --GitHub-License-value MIT"
             "secret-internal-tool: --GitHub-SupportProjects-false"
