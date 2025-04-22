@@ -1,0 +1,20 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  Update-Tags:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+        # Ensure v0 always points to latest commit
+        # Necessary for discovery of OrgWarden composite action
+      - name: Move v0 Tag
+        run: |
+          git tag v0 -f
+          git push origin --tags --force
