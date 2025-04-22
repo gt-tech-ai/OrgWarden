@@ -147,7 +147,7 @@ jobs:
   Run-OrgWarden:
     runs-on: ubuntu-latest
     steps:
-      - uses: gt-tech-ai/OrgWarden@v0
+      - uses: gt-tech-ai/OrgWarden@action-v0
         with:
           org-url: https://github.com/my-org
           github-pat: ${{ secrets.ORGWARDEN_AUDIT_PAT }}
@@ -164,3 +164,4 @@ To manually run tests on this project, run the following command:
 ```bash
 uv run pytest
 ```
+OrgWarden uses [AutoGitSemVer](https://github.com/davidbrownell/AutoGitSemVer) to automatically update semantic version tags. If your changes introduce a *backwards-compatible* feature, please include "+minor" in your commit message's title or description. If your changes introduce a *backwards-incompatible* feature, please include "+major" in your commit message's title or description.

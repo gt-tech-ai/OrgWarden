@@ -1,0 +1,5 @@
+version_prefix: v
+additional_dependencies:
+  - "../pyproject.toml"
+  - "../README.md"
+  - "../uv.lock"

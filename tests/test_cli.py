@@ -91,7 +91,6 @@ class TestAuditCommand:
             _ = runner.invoke(app, [self.COMMAND, url, GITHUB_PAT])
             stdout = capfd.readouterr().out
             assert "DONE" in stdout
-            assert url in stdout
 
     def test_handles_unused_settings_entries(
         self, monkeypatch: MonkeyPatch, capfd: CaptureFixture

@@ -1,0 +1,24 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  Update-SemVer-Tags:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install AutoGitSemVer
+        run: uv add AutoGitSemVer
+
+      - name: Update Package & Action Major/Minor/Patch Tags
+        run: .github/update_tags.sh

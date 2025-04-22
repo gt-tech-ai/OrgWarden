@@ -1,0 +1,3 @@
+version_prefix: action-v
+additional_dependencies:
+  - "../action.yml"
