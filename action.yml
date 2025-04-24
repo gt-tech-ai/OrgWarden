@@ -39,6 +39,7 @@ runs:
       uses: actions/checkout@v4
       with:
         repository: gt-tech-ai/OrgWarden
+        ref: v0
 
     - name: Setup uv
       uses: astral-sh/setup-uv@v5
