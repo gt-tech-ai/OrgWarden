@@ -1,8 +1,10 @@
 ![CI](https://github.com/gt-tech-ai/OrgWarden/actions/workflows/CI.yml/badge.svg)
 
-# 👮‍♀️ OrgWarden (Work In Progress)
+# OrgWarden 🔒
 
 *OrgWarden* helps ensure your GitHub organization's repositories follow best practices. Under the hood, OrgWarden uses [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor).
+
+For help using OrgWarden in a GitHub Actions workflow, see [Using OrgWarden with GitHub Actions](#-using-orgwarden-with-github-actions).
 
 ## Installation
 
@@ -23,9 +25,11 @@ uv sync
 You can run the tool with `uv`. The available commands are as follows:
 
 ### List Repositories
-Lists all public, non-forked repositories for the specified GitHub organization pointed to by the `url` argument.
+Lists all non-forked repositories for the specified GitHub organization pointed to by the `url` argument.
 
 The `gh-pat` argument is a GitHub Personal Access Token (PAT) that is used to access your organization's repositories and avoid GitHub API rate limits. See [Setting Up a Personal Access Token](#setting-up-a-personal-access-token) for more information.
+
+By default, the command only lists public repositories. If you'd like to include your organization's private repositories as well, use the `--include-private-repos` flag.
 
 ```bash
 uv run orgwarden list-repos [org_url] [gh_pat]
@@ -40,8 +44,10 @@ The optional `settings_sequence` argument allows you to alter audit behavior on 
 
 The optional `--module` flag allows you to specify which RepoAuditor modules you would like to include in the audit. All available modules will run if none are specified. See [RepoAuditor docs](https://github.com/gt-sse-center/RepoAuditor) for more information on available modules.
 
+If you'd like to include private repositories in the audit, you can either use the `--include-all-private-repos` flag to audit all of your organizations private repositories, or use the `--include-private-repo` flag to include specific private repositories in the audit.
+
 ```bash
-uv run orgwarden audit [repo_or_org_url] [gh_pat] [settings_sequence]... --module <module_1> --module <module_2>
+uv run orgwarden audit [repo_or_org_url] [gh_pat] [settings_sequence]... --module <module_1> --module <module_2> --include-private-repo <repo_name>
 ```
 
 
@@ -88,14 +94,21 @@ Ensure your token has the following minimum permissions:
 Your fine-grained token will need to be approved by one of your organization's admins.
 
 ### Creating a Classic Personal Access Token
-Ensure your Classic PAT is created with the following minimum permissions:
+If you will only be auditing public repositories, ensure your Classic PAT is created with the following minimum permissions:
 
 repo - public_repo ✅
 
 <picture>
-    <img src="./images/classic_PAT.png" alt="GitHub Classic PAT Settings">
+    <img src="./images/classic_PAT_public_only.png" alt="GitHub Classic PAT Settings">
 </picture>
 
+If you would like to audit both public *and* private repositories, ensure your Classic PAT is created with the following minimum permissions:
+
+repo - all ✅
+
+<picture>
+    <img src="./images/classic_PAT_private_public.png" alt="GitHub Classic PAT Settings">
+</picture>
 
 
 ## Repository-Specific Settings
@@ -131,8 +144,10 @@ You can use our action with the following inputs:
 | ----- | -------- | ----------- |
 | org-url | yes | Full URL of the GitHub organization you would like to audit. |
 | github-pat | yes | Your GitHub Personal Access Token (PAT). Store your token as a [GitHub Actions Secret](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions). |
-| modules | no | Specific RepoAuditor modules to run, separated by a space. |
 | repository-audit-settings | no | Sequence of repository-specific audit settings. |
+| modules | no | Specific RepoAuditor modules to run, separated by a space. |
+| include-all-private-repos | no | Include all of your organization's private repositories in the audit. |
+| included-private-repos | no | Specific private repositories to include in the audit. |
 
 ### Example: Using OrgWarden in a Workflow
 ```yaml
@@ -155,6 +170,7 @@ jobs:
           repository-audit-settings: >
             "my-awesome-repo: --GitHub-AutoMerge-false --GitHub-License-value MIT"
             "secret-internal-tool: --GitHub-SupportProjects-false"
+          included-private-repos: MyPrivateRepo secret-internal-tool
 ```
 
 

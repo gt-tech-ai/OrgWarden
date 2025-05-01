@@ -11,12 +11,16 @@ requests_get_IMPORT_PATH = "requests.get"
 
 def test_missing_org():
     with pytest.raises(ValueError, match="empty string"):
-        _ = fetch_org_repos(org_name="", hostname="host", gh_pat="pat")
+        _ = fetch_org_repos(
+            org_name="", hostname="host", gh_pat="pat", include_all_private_repos=False
+        )
 
 
 def test_missing_hostname():
     with pytest.raises(ValueError, match="empty string"):
-        _ = fetch_org_repos(org_name="org", hostname="", gh_pat="pat")
+        _ = fetch_org_repos(
+            org_name="org", hostname="", gh_pat="pat", include_all_private_repos=False
+        )
 
 
 def test_requests_get_called_correctly(monkeypatch: MonkeyPatch):
@@ -31,7 +35,9 @@ def test_requests_get_called_correctly(monkeypatch: MonkeyPatch):
         return SimpleNamespace(status_code=200, json=lambda: [])
 
     monkeypatch.setattr(requests_get_IMPORT_PATH, mock_get)
-    _ = fetch_org_repos(TECH_AI_ORG_NAME, GITHUB_HOSTNAME, GITHUB_PAT)
+    _ = fetch_org_repos(
+        TECH_AI_ORG_NAME, GITHUB_HOSTNAME, GITHUB_PAT, include_all_private_repos=False
+    )
     assert mock_get_called
 
 
@@ -43,7 +49,7 @@ def test_invalid_auth(monkeypatch: MonkeyPatch):
         ),
     )
     with pytest.raises(AuthError, match="Must authenticate"):
-        _ = fetch_org_repos("org", "host", "pat")
+        _ = fetch_org_repos("org", "host", "pat", include_all_private_repos=False)
 
 
 def test_generic_api_error(monkeypatch: MonkeyPatch):
@@ -54,7 +60,7 @@ def test_generic_api_error(monkeypatch: MonkeyPatch):
         ),
     )
     with pytest.raises(APIError, match="Some general API error"):
-        _ = fetch_org_repos("org", "host", "pat")
+        _ = fetch_org_repos("org", "host", "pat", include_all_private_repos=False)
 
 
 def test_invalid_json_response(monkeypatch: MonkeyPatch):
@@ -74,7 +80,7 @@ def test_invalid_json_response(monkeypatch: MonkeyPatch):
         with pytest.raises(
             APIError, match="response does not match expected JSON schema"
         ):
-            _ = fetch_org_repos("org", "host", "pat")
+            _ = fetch_org_repos("org", "host", "pat", include_all_private_repos=False)
 
 
 def test_api_response_parsing(monkeypatch: MonkeyPatch):
@@ -110,7 +116,9 @@ def test_api_response_parsing(monkeypatch: MonkeyPatch):
             json=lambda: JSON_OUTPUT if kwargs["params"]["page"] == 1 else [],
         ),
     )
-    repos = fetch_org_repos(TECH_AI_ORG_NAME, "host", "pat")
+    repos = fetch_org_repos(
+        TECH_AI_ORG_NAME, "host", "pat", include_all_private_repos=False
+    )
     for actual, expected in zip(repos, EXPECTED_REPOS):
         assert actual == expected
 
@@ -143,5 +151,64 @@ def test_skips_private_forks_dotgithub(monkeypatch: MonkeyPatch):
             json=lambda: JSON_OUTPUT if kwargs["params"]["page"] == 1 else [],
         ),
     )
-    repos = fetch_org_repos("org", "host", "pat")
+    repos = fetch_org_repos("org", "host", "pat", include_all_private_repos=False)
     assert len(repos) == 0
+
+
+def test_includes_all_private_repos(monkeypatch: MonkeyPatch):
+    JSON_OUTPUT = [
+        {
+            "name": "repo_1",
+            "html_url": "url",
+            "private": True,
+            "fork": False,
+        },
+        {
+            "name": "repo_2",
+            "html_url": "url",
+            "private": True,
+            "fork": False,
+        },
+    ]
+    monkeypatch.setattr(
+        requests_get_IMPORT_PATH,
+        lambda *args, **kwargs: SimpleNamespace(
+            status_code=200,
+            json=lambda: JSON_OUTPUT if kwargs["params"]["page"] == 1 else [],
+        ),
+    )
+    repos = fetch_org_repos("org", "host", "pat", include_all_private_repos=True)
+    assert len(repos) == len(JSON_OUTPUT)
+
+
+def test_includes_specific_private_repos(monkeypatch: MonkeyPatch):
+    JSON_OUTPUT = [
+        {
+            "name": "included_repo",
+            "html_url": "url",
+            "private": True,
+            "fork": False,
+        },
+        {
+            "name": "ignored_repo",
+            "html_url": "url",
+            "private": True,
+            "fork": False,
+        },
+    ]
+    monkeypatch.setattr(
+        requests_get_IMPORT_PATH,
+        lambda *args, **kwargs: SimpleNamespace(
+            status_code=200,
+            json=lambda: JSON_OUTPUT if kwargs["params"]["page"] == 1 else [],
+        ),
+    )
+    repos = fetch_org_repos(
+        "org",
+        "host",
+        "pat",
+        specific_included_private_repos={"included_repo"},
+        include_all_private_repos=False,
+    )
+    assert len(repos) == 1
+    assert repos[0].name == "included_repo"
