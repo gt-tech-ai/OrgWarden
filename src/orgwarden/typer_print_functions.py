@@ -1,6 +1,19 @@
 import typer
 
 
+def print_centered_message(message_with_spaces: str):
+    REPO_AUDITOR_OUTPUT_LENGTH = 180
+    BAR_CHAR = "─"
+    message_with_spaces = f" {message_with_spaces} "
+    side_bar_length = (REPO_AUDITOR_OUTPUT_LENGTH - len(message_with_spaces)) // 2
+    typer.echo(
+        typer.style(
+            f"{BAR_CHAR * side_bar_length}{message_with_spaces}{BAR_CHAR * side_bar_length}",
+            fg=typer.colors.CYAN,
+        )
+    )
+
+
 def print_general_error(message: str):
     typer.echo(typer.style(message, fg=typer.colors.RED), err=True)
 

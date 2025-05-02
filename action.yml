@@ -18,6 +18,12 @@ inputs:
       A GitHub Personal Access Token (PAT).
       See https://github.com/gt-tech-ai/OrgWarden#setting-up-a-personal-access-token for help.
     required: true
+  repository-audit-settings:
+    description: |
+      Allows you to alter audit behavior on an individual repository basis by providing a sequence of settings strings.
+      See https://github.com/gt-tech-ai/OrgWarden#repository-specific-settings for help.
+      Example format: "OrgWarden: --GitHub-AutoMerge-false" "my-repo: --GitHub-License-value MIT"
+    required: false
   modules:
     description: |
       The RepoAuditor modules you would like to run. If not provided, OrgWarden will run all RepoAuditor modules.
@@ -25,11 +31,16 @@ inputs:
       Example: "GitHub My-Module GitHub-Customization"
       See https://github.com/gt-sse-center/RepoAuditor for available modules.
     required: False
-  repository-audit-settings:
+  include-all-private-repos:
     description: |
-      Allows you to alter audit behavior on an individual repository basis by providing a sequence of settings strings.
-      See https://github.com/gt-tech-ai/OrgWarden#repository-specific-settings for help.
-      Example format: "OrgWarden: --GitHub-AutoMerge-false" "my-repo: --GitHub-License-value MIT"
+      Include all of your organization's private repositories in OrgWarden's audit.
+      Default: false.
+    required: false
+  included-private-repos:
+    description: |
+      Specific private repositories to include in OrgWarden's audit.
+      Repositories should be deliminated by a single space.
+      Example: "MyPrivateRepo top-secret-tool unfinished-project"
     required: false
 
 runs:
@@ -56,6 +67,15 @@ runs:
         
         command="uv run orgwarden audit ${{ inputs.org-url }} ${{ inputs.github-pat }} ${{ inputs.repository-audit-settings }}"
         
+        if echo "${{ inputs.include-all-private-repos }}" | grep -i "true"; then
+          command+=" --include-all-private-repos"
+        elif [ -n "${{ inputs.included-private-repos }}" ]; then
+          private_repos=(${{ inputs.included-private-repos }})
+          for repo in "${private_repos[@]}"; do
+            command+=" --include-private-repo $repo"
+          done
+        fi
+
         if [ -n "${{ inputs.modules }}" ]; then
           modules=(${{ inputs.modules }})
           for module in "${modules[@]}"; do

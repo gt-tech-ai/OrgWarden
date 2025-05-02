@@ -40,9 +40,21 @@ def list_repos(
             callback=reject_empty_string,
         ),
     ],
+    include_private_repos: Annotated[
+        bool,
+        typer.Option(
+            "--include-private-repos",
+            help="Include this organization's private repositories. "
+            "Note: your PAT must have access to your organization's private repositories.",
+            show_default=False,
+        ),
+    ] = False,
 ) -> None:
     """
-    Lists all public, non-forked repositories for the specified organization.
+    List an organization's repositories.
+
+    Defaults to public, non-forked repositories only.
+    Provide the *--include-private-repos* flag to include private repositories.
     """
 
     try:
@@ -52,7 +64,12 @@ def list_repos(
         raise typer.Exit(1)
 
     try:
-        repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname, gh_pat)
+        repos = fetch_org_repos(
+            parsed_url.org_name,
+            parsed_url.hostname,
+            gh_pat,
+            include_all_private_repos=include_private_repos,
+        )
     except AuthError as e:
         tpf.print_auth_error(e.hostname)
         raise typer.Exit(1)
@@ -60,7 +77,9 @@ def list_repos(
         tpf.print_general_error(e)
         raise typer.Exit(1)
 
-    print(f"~~~~~ Public repositories found for {url} ~~~~~")
+    tpf.print_centered_message(
+        f"{'Public ' if not include_private_repos else ''}Repositories found for {url}"
+    )
     for repo in repos:
         print(f"{repo.org}/{repo.name} - {repo.url}")
 
@@ -98,6 +117,25 @@ def audit(
             show_default=False,
         ),
     ] = None,
+    include_all_private_repos: Annotated[
+        bool,
+        typer.Option(
+            "--include-all-private-repos",
+            help="Include all of the specified organization's private repositories. "
+            "Note: your PAT must have access to your organization's private repositories.",
+            show_default=False,
+        ),
+    ] = False,
+    included_private_repos: Annotated[
+        list[str],
+        typer.Option(
+            "--include-private-repo",
+            help="The name of a private repository to be included in the audit. "
+            "Can be provided multiple times. Example: '--include-private-repo repo_one --include-private-repo repo_two'. "
+            "Note: your PAT must have access to your organization's private repositories.",
+            show_default=False,
+        ),
+    ] = [],
     modules: Annotated[
         list[str] | None,
         typer.Option(
@@ -110,7 +148,7 @@ def audit(
     ] = None,
 ) -> None:
     """
-    Runs RepoAuditor against the specified organization or repository.
+    Runs [RepoAuditor](https://github.com/gt-sse-center/RepoAuditor) against the specified organization or repository.
     """
 
     try:
@@ -132,7 +170,13 @@ def audit(
 
     else:  # organization
         try:
-            repos = fetch_org_repos(parsed_url.org_name, parsed_url.hostname, gh_pat)
+            repos = fetch_org_repos(
+                parsed_url.org_name,
+                parsed_url.hostname,
+                gh_pat,
+                set(included_private_repos),
+                include_all_private_repos=include_all_private_repos,
+            )
         except AuthError as e:
             tpf.print_auth_error(e.hostname)
             raise typer.Exit(1)
@@ -157,8 +201,7 @@ def audit(
     # Audit repositories
     final_exit_code = 0  # keep track of highest exit code i.e. worst error -> ensures the command fails if any repo fails audit
     for repo in repos:
-        typer.echo(typer.style(f"Now Auditing: {repo.url}", fg=typer.colors.CYAN))
-
+        tpf.print_centered_message(f"Now Auditing: {repo.url}")
         exit_code = audit_repository(repo, gh_pat, audit_settings, modules)
         final_exit_code = max(final_exit_code, exit_code)
     raise typer.Exit(final_exit_code)
