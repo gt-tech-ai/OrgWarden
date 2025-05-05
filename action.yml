@@ -64,8 +64,10 @@ runs:
         # OrgWarden
         CYAN="\033[0;36m"
         echo -e "${CYAN}Now Running OrgWarden"
+
+        repo_settings='${{ inputs.repository-audit-settings }}'
         
-        command="uv run orgwarden audit ${{ inputs.org-url }} ${{ inputs.github-pat }} ${{ inputs.repository-audit-settings }}"
+        command="uv run orgwarden audit ${{ inputs.org-url }} ${{ inputs.github-pat }} $repo_settings"
         
         if echo "${{ inputs.include-all-private-repos }}" | grep -i "true"; then
           command+=" --include-all-private-repos"
@@ -83,6 +85,7 @@ runs:
           done
         fi
 
+        echo Running Command: $command
         eval "$command"
       shell: bash
       
