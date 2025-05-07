@@ -60,15 +60,16 @@ runs:
       shell: bash
 
     - name: Run OrgWarden
+      env:
+        # Must be converted to an enviroment variable in order to preserve single and double quotes
+        REPO_AUDIT_SETTINGS: ${{ inputs.repository-audit-settings }}
       run: |
         # OrgWarden
         CYAN="\033[0;36m"
         echo -e "${CYAN}Now Running OrgWarden"
+        
+        command="uv run orgwarden audit ${{ inputs.org-url }} ${{ inputs.github-pat }} $REPO_AUDIT_SETTINGS"
 
-        repo_settings='${{ inputs.repository-audit-settings }}'
-        
-        command="uv run orgwarden audit ${{ inputs.org-url }} ${{ inputs.github-pat }} $repo_settings"
-        
         if echo "${{ inputs.include-all-private-repos }}" | grep -i "true"; then
           command+=" --include-all-private-repos"
         elif [ -n "${{ inputs.included-private-repos }}" ]; then
