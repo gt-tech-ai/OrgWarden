@@ -87,6 +87,6 @@ runs:
         fi
 
         echo Running Command: $command
-        eval "$command"
+        eval $command
       shell: bash
       
