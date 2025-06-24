@@ -1,7 +1,7 @@
 import subprocess
 from orgwarden.repo_crawler import Repository
 
-KNOWN_MODULES = ["GitHub"]
+KNOWN_MODULES = ["GitHub", "GitHubRulesets", "GitHubCommunityStandards"]
 
 
 def audit_repository(
@@ -16,7 +16,11 @@ def audit_repository(
     if not modules:
         modules = KNOWN_MODULES
 
-    command = f"uv run repo_auditor {' '.join(f'--include {module}' for module in modules)} --GitHub-url {repo.url} --GitHub-pat {gh_pat}"
+    command = "uv run repo_auditor"
+    for module in modules:
+        command += (
+            f" --include {module} --{module}-url {repo.url} --{module}-pat {gh_pat}"
+        )
 
     if audit_settings and repo.name in audit_settings:
         command += f" {audit_settings[repo.name]}"

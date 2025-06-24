@@ -32,7 +32,7 @@ def test_requests_get_called_correctly(monkeypatch: MonkeyPatch):
         assert params, headers
         assert TECH_AI_ORG_NAME in url, GITHUB_HOSTNAME in url
         assert GITHUB_PAT in headers["Authorization"]
-        return SimpleNamespace(status_code=200, json=lambda: [])
+        return SimpleNamespace(status_code=200, json=lambda: [])  # type: ignore
 
     monkeypatch.setattr(requests_get_IMPORT_PATH, mock_get)
     _ = fetch_org_repos(
