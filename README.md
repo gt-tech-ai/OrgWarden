@@ -80,6 +80,8 @@ Ensure your token has the following minimum permissions:
   <tr><td>Administration</td><td>Read-only</td></tr>
   <tr><td>Contents</td><td>Read and write</td></tr>
   <tr><td>Metadata</td><td>Read-only</td></tr>
+  <tr><td>Secret Scanning Alerts</td><td>Read-only</td></tr>
+  <tr><td>Dependabot Alerts</td><td>Read-only</td></tr>
 
   <tr><th colspan="2">Organization Permissions</th></tr>
   <tr><td colspan="2">None</td></tr>

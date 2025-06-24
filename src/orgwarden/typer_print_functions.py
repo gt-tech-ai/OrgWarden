@@ -14,14 +14,14 @@ def print_centered_message(message_with_spaces: str):
     )
 
 
-def print_general_error(message: str):
-    typer.echo(typer.style(message, fg=typer.colors.RED), err=True)
+def print_general_error(err: Exception):
+    typer.echo(typer.style(err, fg=typer.colors.RED), err=True)
 
 
-def print_invalid_url_msg(message: str):
+def print_invalid_url_msg(err: Exception):
     typer.echo(
         typer.style(
-            message,
+            err,
             fg=typer.colors.RED,
         ),
         err=True,

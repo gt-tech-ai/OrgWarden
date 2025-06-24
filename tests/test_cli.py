@@ -42,8 +42,8 @@ class TestSharedFunctionality:
         for command in self.COMMANDS:
             res = runner.invoke(app, [command, "bad-url", "pat"])
             assert res.exit_code != 0
-            assert "not a valid URL" in res.stdout
-            assert "Example: " in res.stdout
+            assert "not a valid URL" in res.stderr
+            assert "Example: " in res.stderr
 
     def test_handles_api_auth_error(self, monkeypatch: MonkeyPatch):
         for command in self.COMMANDS:
@@ -55,7 +55,7 @@ class TestSharedFunctionality:
             )
             res = runner.invoke(app, [command, TECH_AI_URL, "pat"])
             assert res.exit_code != 0
-            assert "could not authenticate" in res.stdout
+            assert "could not authenticate" in res.stderr
 
     def test_handles_general_api_error(self, monkeypatch: MonkeyPatch):
         for command in self.COMMANDS:
@@ -67,7 +67,7 @@ class TestSharedFunctionality:
             )
             res = runner.invoke(app, [command, TECH_AI_URL, "pat"])
             assert res.exit_code != 0
-            assert "Error fetching repos" in res.stdout
+            assert "Error fetching repos" in res.stderr
 
 
 class TestListReposCommand:
@@ -101,7 +101,7 @@ class TestAuditCommand:
         res = runner.invoke(
             app, [self.COMMAND, TECH_AI_URL, GITHUB_PAT, *SETTINGS_SEQUENCE]
         )
-        assert "this repository is not being audited" in res.stdout
+        assert "this repository is not being audited" in res.stderr
 
         _ = capfd.readouterr()  # prevents error output from RepoAuditor
         # due to invalid flags from polluting test output
@@ -112,7 +112,7 @@ class TestAuditCommand:
             app, [self.COMMAND, TECH_AI_URL, GITHUB_PAT, *SETTINGS_SEQUENCE]
         )
         assert res.exit_code != 0
-        assert "contains multiple entries" in res.stdout
+        assert "contains multiple entries" in res.stderr
 
     # not needed for coverage, but worth explicitly testing
     def test_repository_settings_passed_correctly(self, monkeypatch: MonkeyPatch):

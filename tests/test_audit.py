@@ -17,11 +17,12 @@ def test_repo_auditor_called_correctly(monkeypatch: MonkeyPatch):
         nonlocal mock_repo_auditor_called
         mock_repo_auditor_called = True
         assert shell, text
-        assert (
-            cmd
-            == f"uv run repo_auditor --include GitHub --GitHub-url {ORGWARDEN_URL} --GitHub-pat {GITHUB_PAT}"
-        )
-        return SimpleNamespace(returncode=0, stdout="")
+        assert "uv run repo_auditor" in cmd
+        for module in KNOWN_MODULES:
+            assert f"--include {module}" in cmd
+            assert f"--{module}-url {ORGWARDEN_URL}" in cmd
+            assert f"--{module}-pat {GITHUB_PAT}" in cmd
+        return SimpleNamespace(returncode=0, stdout="")  # type: ignore
 
     monkeypatch.setattr(repo_auditor_IMPORT_PATH, mock_repo_auditor)
     exit_code = audit_repository(
