@@ -229,7 +229,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "repoauditor", specifier = ">=0.2.42" },
+    { name = "repoauditor", specifier = ">=0.2.51" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "typer", specifier = ">=0.15.2" },
 ]
@@ -336,7 +336,7 @@ wheels = [
 
 [[package]]
 name = "repoauditor"
-version = "0.2.43"
+version = "0.2.51"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dbrownell-common" },
@@ -346,9 +346,9 @@ dependencies = [
     { name = "typer" },
     { name = "typer-config", extra = ["yaml"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f2/24/87f44837cbc75555145a10764c6e4cd5ff4fca7bde8a75f918d83ba72514/repoauditor-0.2.43.tar.gz", hash = "sha256:1d949404218fdfd68d089ce0208f0d6adefdd33159c44b9c923f30bd3d05f0de", size = 122517 }
+sdist = { url = "https://files.pythonhosted.org/packages/d2/7f/52cd9c76a72c703171731f036b18dbe811329a0888063731cf15da2c9985/repoauditor-0.2.51.tar.gz", hash = "sha256:bc491b4c827dce1cda88c32e0582b5f217d998a9f19c0610171a033f596b819b", size = 128025 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/81/91/9afea4260ed8c71309de97012298d2c07a4c06ae44e3ac82e15febad9f34/repoauditor-0.2.43-py3-none-any.whl", hash = "sha256:653b3e5b68807a30c65b9c47e916b4df59a60fa857296a10626fa35d139e1497", size = 89811 },
+    { url = "https://files.pythonhosted.org/packages/0e/cb/41d87963c0a9ad9e36dd101fa4b4a0947e5ff1125f00c16b6d51ccfe400a/repoauditor-0.2.51-py3-none-any.whl", hash = "sha256:956bd5ec31870ee54f6aa9c77c7430bfdafdc1baeecb866e4f22e5da006377a9", size = 91292 },
 ]
 
 [[package]]
