@@ -1,7 +1,7 @@
 import subprocess
 from orgwarden.repo_crawler import Repository
 
-KNOWN_MODULES = ["GitHub", "GitHubRulesets", "GitHubCommunityStandards"]
+KNOWN_MODULES = ["GitHub", "GitHubCommunityStandards"]
 
 
 def audit_repository(
