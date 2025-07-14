@@ -1,0 +1,21 @@
+# Changes here will be overwritten by Copier; DO NOT MODIFY THIS FILE DIRECTLY!
+#
+# This file was generated using copier (https://copier.readthedocs.io/) with the
+# template copier-UvScaffolding (https://github.com/gt-sse-center/copier-UvScaffolding).
+# Additional information (including instructions on how to use this template with copier) is
+# available at https://github.com/gt-sse-center/copier-UvScaffolding.
+#
+
+_commit: v0.2.4
+_src_path: .
+author_email: techaisoftware@gatech.edu
+author_name: Tech AI
+coverage_badge_gist_id: ''
+github_host: https://github.com
+github_repo_name: OrgWarden
+github_username: gt-tech-ai
+license: MIT
+project_name: OrgWarden
+python_package_name: OrgWarden
+python_versions: 3.12, 3.13
+sign_artifacts_question: false
