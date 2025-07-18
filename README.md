@@ -1,4 +1,10 @@
-![CI](https://github.com/gt-tech-ai/OrgWarden/actions/workflows/CI.yml/badge.svg)
+**Project:**
+[![License](https://img.shields.io/github/license/gt-tech-ai/OrgWarden?color=dark-green)](https://github.com/gt-tech-ai/OrgWarden/blob/master/LICENSE)
+
+**Development:**
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![CI](https://github.com/gt-tech-ai/OrgWarden/actions/workflows/CI.yml/badge.svg)](https://github.com/gt-tech-ai/OrgWarden/actions/workflows/CI.yml)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/y/gt-tech-ai/OrgWarden?color=dark-green)](https://github.com/gt-tech-ai/OrgWarden/commits/main/)
 
 # OrgWarden 🔒
 
@@ -176,10 +182,16 @@ jobs:
 ```
 
 
+## Additional Information
+Additional information can be found at these locations.
 
-## Development
-To manually run tests on this project, run the following command:
-```bash
-uv run pytest
-```
-OrgWarden uses [AutoGitSemVer](https://github.com/davidbrownell/AutoGitSemVer) to automatically update semantic version tags. If your changes introduce a *backwards-compatible* feature, please include "+minor" in your commit message's title or description. If your changes introduce a *backwards-incompatible* feature, please include "+major" in your commit message's title or description.
+| Title | Document | Description |
+| --- | --- | --- |
+| Code of Conduct | [CODE_OF_CONDUCT.md](https://github.com/gt-tech-ai/OrgWarden/blob/main/CODE_OF_CONDUCT.md) | Information about the norms, rules, and responsibilities we adhere to when participating in this open source community. |
+| Contributing | [CONTRIBUTING.md](https://github.com/gt-tech-ai/OrgWarden/blob/main/CONTRIBUTING.md) | Information about contributing to this project. |
+| Development | [DEVELOPMENT.md](https://github.com/gt-tech-ai/OrgWarden/blob/main/DEVELOPMENT.md) | Information about development activities involved in making changes to this project. |
+| Maintainers | [MAINTAINERS.md](https://github.com/gt-tech-ai/OrgWarden/blob/main/MAINTAINERS.md) | Information about individuals who maintain this project. |
+| Security | [SECURITY.md](https://github.com/gt-tech-ai/OrgWarden/blob/main/SECURITY.md) | Information about how to privately report security issues associated with this project. |
+
+## License
+`OrgWarden` is licensed under the <a href="https://choosealicense.com/licenses/MIT/" target="_blank">MIT</a> license.
