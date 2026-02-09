@@ -1,9 +1,9 @@
 [project]
 name = "orgwarden"
-description = "Add your description here"
+description = "Audit a GitHub organization's repositories for best practices."
 readme = "README.md"
 authors = [
-    { name = "Tech AI", email = "techaisoftware@gatech.edu" }
+    { name = "Tech AI", email = "techai-rse@groups.gatech.edu" }
 ]
 requires-python = ">= 3.12"
 dependencies = [
